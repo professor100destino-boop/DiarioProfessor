@@ -1,0 +1,26 @@
+COLE ESTE BLOCO DENTRO DA function viewSettings(), LOGO DEPOIS DO BOTÃO "Bloquear agora" E ANTES DO BOTÃO "Apagar tudo":
+
+'<div class="card" style="padding:16px;margin-top:12px">'+
+'<div class="sb small" style="margin-bottom:8px">Backup completo</div>'+
+'<div class="xs muted" style="margin-bottom:10px">Baixe um arquivo com escolas, turmas, alunos, chamadas, atividades, notas e senha local. Guarde em local seguro.</div>'+
+'<button class="btn btn-amber" style="width:100%;margin-top:8px" onclick="D.exportBackup()">Baixar backup completo</button>'+
+'<input id="backupFile" type="file" accept=".json,application/json" style="display:none" onchange="D.importBackup(event)" />'+
+'<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="document.getElementById(\'backupFile\').click()">Restaurar backup</button>'+
+'</div>'+
+
+
+A PARTE FINAL DA function viewSettings() DEVE FICAR ASSIM:
+
+'<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="D.lock()">'+I.lock+' Bloquear agora</button>'+
+
+'<div class="card" style="padding:16px;margin-top:12px">'+
+'<div class="sb small" style="margin-bottom:8px">Backup completo</div>'+
+'<div class="xs muted" style="margin-bottom:10px">Baixe um arquivo com escolas, turmas, alunos, chamadas, atividades, notas e senha local. Guarde em local seguro.</div>'+
+'<button class="btn btn-amber" style="width:100%;margin-top:8px" onclick="D.exportBackup()">Baixar backup completo</button>'+
+'<input id="backupFile" type="file" accept=".json,application/json" style="display:none" onchange="D.importBackup(event)" />'+
+'<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="document.getElementById(\'backupFile\').click()">Restaurar backup</button>'+
+'</div>'+
+
+'<button class="btn" style="width:100%;margin-top:12px;color:var(--red);border:1px solid var(--red)" onclick="D.resetAll()">'+I.trash+' Apagar tudo (senha + dados)</button>'+
+
+'<p class="xs muted center" style="margin-top:14px">A senha bloqueia o acesso ao app neste aparelho. Para um backup seguro, use o backup completo e exporte relatórios/CSV de vez em quando.</p></div>';

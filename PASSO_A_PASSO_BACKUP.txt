@@ -1,0 +1,43 @@
+PASSO A PASSO PARA COLOCAR BACKUP NO DIÁRIO DE CLASSE
+
+1) No GitHub, abra o repositório DiarioProfessor.
+2) Abra o arquivo index.html e clique no lápis para editar.
+
+3) Procure por:
+D.exportCSV=function(){
+
+4) Depois do fechamento dessa função, que termina em:
+};
+
+cole todo o conteúdo do arquivo:
+funcoes_backup_para_index.js
+
+5) Ainda no index.html, procure por:
+function viewSettings(){
+
+6) Dentro dessa função, localize este botão:
+'<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="D.lock()">'+I.lock+' Bloquear agora</button>'+
+
+7) Logo depois dele e antes do botão "Apagar tudo", cole o bloco do arquivo:
+botoes_backup_para_viewSettings.txt
+
+8) Salve com Commit changes.
+
+9) Abra o arquivo sw.js no GitHub e substitua tudo pelo arquivo sw.js deste pacote.
+
+10) Salve com Commit changes.
+
+11) Abra o app:
+https://professor100destino-boop.github.io/DiarioProfessor/
+
+12) No celular, feche e abra o navegador. Se não aparecer, limpe o cache do site ou aguarde alguns minutos.
+
+13) Teste:
+- Entre no app.
+- Vá em Segurança.
+- Clique em Baixar backup completo.
+- Confira se baixou um arquivo .json.
+- Só teste Restaurar backup depois de ter esse arquivo salvo em local seguro.
+
+OBSERVAÇÃO IMPORTANTE:
+O arquivo .json pode conter dados de alunos e a senha local em forma de hash. Guarde em local seguro e não publique esse arquivo no GitHub.
