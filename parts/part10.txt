@@ -1,0 +1,129 @@
+!b)return;
+  b.onclick=()=>{
+    const atual=prompt('Digite a senha atual:');
+    if(atual===null)return;
+    if(!securityCheckPassword(atual)){alert('Senha atual incorreta.');return}
+    const nova=prompt('Digite a nova senha (mínimo 4 caracteres):');
+    if(nova===null)return;
+    if(nova.length<4){alert('A nova senha deve ter pelo menos 4 caracteres.');return}
+    const confirma=prompt('Repita a nova senha:');
+    if(confirma!==nova){alert('As senhas não conferem.');return}
+    securitySetPassword(nova);
+    alert('Senha alterada com sucesso.');
+  };
+});
+</script>
+
+
+<script>
+(function(){
+  const status=document.getElementById('offlineStatus');
+
+  function setStatus(text,cls){
+    if(!status)return;
+    status.textContent=text;
+    status.className='offline-status '+cls;
+  }
+
+  function updateNetworkBadge(){
+    if(!navigator.onLine){
+      setStatus('✓ Funcionando offline','offline');
+    }
+  }
+
+  if(!('serviceWorker' in navigator)){
+    setStatus('Navegador sem suporte offline','error');
+    return;
+  }
+
+  if(location.protocol!=='https:' && location.hostname!=='localhost'){
+    setStatus('Publique/instale por HTTPS para ativar offline','error');
+    return;
+  }
+
+  setStatus('Preparando uso 100% offline…','loading');
+
+  window.addEventListener('load', async ()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./service-worker.js');
+      await navigator.serviceWorker.ready;
+
+      // Ask the SW to cache every component needed by PDF and spreadsheets.
+      const controller=navigator.serviceWorker.controller || reg.active || reg.waiting;
+      if(controller){
+        controller.postMessage({type:'PREPARE_OFFLINE'});
+      }
+
+      // Confirm from cache state.
+      const check=async()=>{
+        try{
+          const resp=await fetch('./offline-ready.json',{cache:'no-store'});
+          if(resp.ok){
+            setStatus(navigator.onLine?'✓ Pronto para uso offline':'✓ Funcionando offline',
+                      navigator.onLine?'ready':'offline');
+          }
+        }catch{
+          if(!navigator.onLine)setStatus('✓ Funcionando offline','offline');
+        }
+      };
+      setTimeout(check,1800);
+      setTimeout(check,4500);
+    }catch(err){
+      console.error(err);
+      setStatus('Não foi possível preparar o modo offline','error');
+    }
+  });
+
+  navigator.serviceWorker.addEventListener('message',event=>{
+    if(event.data?.type==='OFFLINE_READY'){
+      setStatus(navigator.onLine?'✓ Pronto para uso offline':'✓ Funcionando offline',
+                navigator.onLine?'ready':'offline');
+    }
+    if(event.data?.type==='OFFLINE_ERROR'){
+      setStatus('Falha ao baixar componentes offline','error');
+    }
+  });
+
+  window.addEventListener('online',()=>setStatus('✓ Pronto para uso offline','ready'));
+  window.addEventListener('offline',updateNetworkBadge);
+  updateNetworkBadge();
+})();
+</script>
+
+<script>
+/* Proteção final das exclusões */
+window.delAluno=function(aid){
+  const a=db.alunos.find(x=>x.id===aid);
+  if(!a)return;
+  if(!confirmarExclusaoComSenha('o aluno',a.nome))return;
+  db.alunos=db.alunos.filter(x=>x.id!==aid);
+  db.frequencias=db.frequencias.filter(f=>f.alunoId!==aid);
+  delete db.notas[aid];
+  if(db.mediasBimestrais) delete db.mediasBimestrais[aid];
+  save();
+  alert('Aluno excluído com sucesso.');
+};
+window.delTurma=function(tid){
+  const t=db.turmas.find(x=>x.id===tid);
+  if(!t)return;
+  const qtd=db.alunos.filter(a=>a.turmaId===tid).length;
+  const nome=turmaNomeCompleto(t);
+  const aviso=`ATENÇÃO!\n\nVocê solicitou excluir a turma:\n${nome}.\n\nEsta turma possui ${qtd} aluno(s) vinculado(s). Os dados relacionados poderão ser apagados.`;
+  if(!confirm(aviso+'\n\nDeseja continuar?'))return;
+  const senha=prompt('Digite a senha do Professor Control para confirmar a exclusão da turma:');
+  if(senha===null)return;
+  if(!securityCheckPassword(senha)){alert('Senha incorreta. A exclusão foi cancelada.');return}
+  const alunosDaTurma=db.alunos.filter(a=>a.turmaId===tid).map(a=>a.id);
+  db.turmas=db.turmas.filter(x=>x.id!==tid);
+  db.alunos=db.alunos.filter(a=>a.turmaId!==tid);
+  db.avaliacoes=db.avaliacoes.filter(a=>a.turmaId!==tid);
+  db.conteudos=db.conteudos.filter(c=>c.turmaId!==tid);
+  db.frequencias=db.frequencias.filter(f=>!alunosDaTurma.includes(f.alunoId));
+  for(const aid of alunosDaTurma){delete db.notas[aid]; if(db.mediasBimestrais)delete db.mediasBimestrais[aid];}
+  save();
+  alert('Turma excluída com sucesso.');
+};
+</script>
+
+</body>
+</html>
