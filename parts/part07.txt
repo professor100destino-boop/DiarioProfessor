@@ -1,0 +1,148 @@
+ort((a,b)=>Number(a.numero)-Number(b.numero))
+    };
+  }catch(err){
+    console.error(err);
+    throw new Error('Não foi possível ler o PDF. Verifique a conexão com a internet e tente novamente.');
+  }
+}
+
+
+function limparNomeAluno(nome){
+  let n=String(nome||'').replace(/\s+/g,' ').trim();
+
+  // Remove fragments of the SIGE table header that can overlap the first student row.
+  n=n
+    .replace(/^(?:NOME\s+)?ALUNO\s+/i,'')
+    .replace(/^ALUNO\s*1[º°o]?\s*BIM(?:ESTRE)?\s*/i,'')
+    .replace(/^1[º°o]?\s*BIM(?:ESTRE)?\s*/i,'')
+    .replace(/^2[º°o]?\s*BIM(?:ESTRE)?\s*/i,'')
+    .replace(/^M[ÉE]DIAS?\s*/i,'')
+    .trim();
+
+  return n;
+}
+
+function importPdfStudents(parsed,tid){
+  let novos=0, atualizados=0, corrigidos=0, medias=0;
+  for(const r of parsed.alunos){
+    let aluno=db.alunos.find(a=>a.turmaId===tid && a.matricula===r.matricula);
+    if(!aluno){
+      aluno=db.alunos.find(a=>a.turmaId===tid && a.nome.toUpperCase()===r.nome.toUpperCase());
+    }
+    if(!aluno){
+      aluno={id:id(),turmaId:tid,numero:r.numero||'',nome:limparNomeAluno(r.nome),matricula:r.matricula||''};
+      db.alunos.push(aluno);
+      novos++;
+    }else{
+      const nomeLimpo=limparNomeAluno(r.nome); if(aluno.nome!==nomeLimpo){aluno.nome=nomeLimpo;corrigidos++}
+      if(r.numero) aluno.numero=r.numero;
+      if(r.matricula) aluno.matricula=r.matricula;
+      atualizados++;
+    }
+    db.mediasBimestrais[aluno.id]??={};
+    if(Number.isFinite(r.media1)){db.mediasBimestrais[aluno.id]['1º Bimestre']=r.media1;medias++}
+    if(Number.isFinite(r.media2)){db.mediasBimestrais[aluno.id]['2º Bimestre']=r.media2;medias++}
+  }
+  return{novos,atualizados,corrigidos,medias};
+}
+
+$('#importFile').onchange=async e=>{
+  const f=e.target.files[0],
+        eid=$('#alunosEscola').value,
+        tid=$('#alunosTurma').value;
+
+  if(!eid){toast('Selecione uma escola');e.target.value='';return}
+  if(!tid){toast('Selecione uma turma desta escola');e.target.value='';return}
+
+  const turmaSel=db.turmas.find(t=>t.id===tid);
+  if(!turmaSel||turmaSel.escolaId!==eid){
+    toast('A turma não pertence à escola selecionada');e.target.value='';return
+  }
+  if(!f)return;
+
+  try{
+    const lower=f.name.toLowerCase();
+
+    if(lower.endsWith('.pdf')){
+      toast('Lendo relatório do SIGE...');
+      const parsed=await extractSigeResumoFinal(f);
+
+      if(!parsed.alunos.length){
+        alert('O PDF foi lido, mas não consegui identificar a tabela de alunos. Use o relatório “Diário de Classe - Resumo Final”.');
+        e.target.value='';
+        return;
+      }
+
+      const escolaAtual=db.escolas.find(x=>x.id===eid);
+      const aviso=[
+        `Foram encontrados ${parsed.alunos.length} alunos.`,
+        parsed.escolaNome?`Escola no PDF: ${parsed.escolaNome}`:'',
+        parsed.turma?`Turma no PDF: ${parsed.turma}`:'',
+        parsed.disciplina?`Disciplina no PDF: ${parsed.disciplina}`:'',
+        '',
+        `Destino escolhido no sistema: ${escolaAtual?.nome||''} → ${turmaNome(turmaSel)}`,
+        '',
+        'Importar os alunos e as médias do 1º e 2º bimestres?'
+      ].filter(Boolean).join('\n');
+
+      if(!confirm(aviso)){e.target.value='';return}
+
+      const r=importPdfStudents(parsed,tid);
+      localStorage.setItem(KEY,JSON.stringify(db));
+      renderAll();
+      alert(`Importação concluída.\n\nNovos alunos: ${r.novos}\nAlunos já existentes atualizados: ${r.atualizados}\nNomes corrigidos: ${r.corrigidos}\nMédias bimestrais gravadas: ${r.medias}`);
+      e.target.value='';
+      return;
+    }
+
+    // Existing spreadsheet import
+    const ab=await f.arrayBuffer();
+    const wb=XLSX.read(ab,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    if(!rows.length){toast('Arquivo vazio');e.target.value='';return}
+
+    const keys=Object.keys(rows[0]);
+    const keyNome=keys.find(k=>/nome/i.test(k));
+    const keyMat=keys.find(k=>/matr/i.test(k));
+    const keyNum=keys.find(k=>/ord|n[uú]m|cham/i.test(k));
+    const keyM1=keys.find(k=>/1.*bim|1º.*bim|primeiro.*bim/i.test(k));
+    const keyM2=keys.find(k=>/2.*bim|2º.*bim|segundo.*bim/i.test(k));
+
+    if(!keyNome){alert('Não encontrei uma coluna de nome dos alunos.');e.target.value='';return}
+
+    let novos=0, atualizados=0;
+    for(const row of rows){
+      const nome=String(row[keyNome]||'').trim();
+      if(!nome)continue;
+      const matricula=String(keyMat?row[keyMat]:'').trim();
+      let aluno=db.alunos.find(a=>a.turmaId===tid && ((matricula&&a.matricula===matricula) || a.nome.toUpperCase()===nome.toUpperCase()));
+      if(!aluno){
+        aluno={id:id(),turmaId:tid,numero:String(keyNum?row[keyNum]:'').trim(),nome,matricula};
+        db.alunos.push(aluno);novos++;
+      }else{atualizados++}
+      db.mediasBimestrais[aluno.id]??={};
+      const parseN=v=>{
+        if(v===null||v===undefined||v==='')return null;
+        const n=Number(String(v).replace(',','.'));
+        return Number.isFinite(n)?n:null;
+      };
+      const m1=keyM1?parseN(row[keyM1]):null;
+      const m2=keyM2?parseN(row[keyM2]):null;
+      if(m1!==null)db.mediasBimestrais[aluno.id]['1º Bimestre']=m1;
+      if(m2!==null)db.mediasBimestrais[aluno.id]['2º Bimestre']=m2;
+    }
+    localStorage.setItem(KEY,JSON.stringify(db));
+    renderAll();
+    toast(`${novos} alunos importados`);
+  }catch(err){
+    console.error(err);
+    alert(err.message||'Erro ao importar arquivo');
+  }finally{
+    e.target.value='';
+  }
+};
+
+function renderFreq(){const tid=$('#freqTurma')?.value;if(!$('#freqData').value)$('#freqData').value=todayISO();const data=$('#freqData').value;const alunos=db.alunos.filter(a=>a.turmaId===tid);currentFreq={};for(const a of alunos){const old=db.frequencias.find(f=>f.alunoId===a.id&&f.data===data);currentFreq[a.id]=old?.status||'P'}$('#freqList').innerHTML=alunos.length?alunos.map(a=>`<div class=freq-row><span><b>${esc(a.numero||'')}</b> ${esc(a.nome)}</span><div class=seg data-aid="${a.id}">${[['P','Presente'],['F','Falta'],['J','Justificada'],['A','Atraso']].map(([v,l])=>`<button data-status="${v}" class="${currentFreq[a.id]===v?'active':''}">${l}</button>`).join('')}</div></div>`).join(''):'<p class=muted>Nenhum aluno nesta turma.</p>';$$('.seg button').forEach(b=>b.onclick=()=>{const seg=b.parentElement;currentFreq[seg.dataset.aid]=b.dataset.status;[...seg.children].forEach(x=>x.classList.toggle('active',x===b))})}
+$('#freqTurma').onchange=renderFreq;$('#freqData').onchange=renderFreq;$('#todosPresentesBtn').onclick=()=>{$$('.seg').forEach(seg=>{currentFreq[seg.dataset.aid]='P';[...seg.children].forEach(b=>b.classList.toggle('active',b.dataset.status==='P'))})};$('#salvarFreqBtn').onclick=()=>{const data=$('#freqData').value,tid=$('#freqTurma').value;const aids=db.alunos.filter(a=>a.turmaId===tid).map(a=>a.id);db.frequencias=db.frequencias.filter(f=>!(aids.includes(f.alunoId)&&f.data===data));for(const [alunoId,status] of Object.entries(currentFreq))db.frequencias.push({alunoId,data,status});save();toast('Chamada salva')};
+function avaliacoes
