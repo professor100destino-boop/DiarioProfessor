@@ -1,0 +1,191 @@
+id===f.alunoId);return{Data:f.data,Aluno:a?.nome||'',Status:f.status}}));if(type==='notas'){const rows=[];for(const a of db.alunos){const t=db.turmas.find(x=>x.id===a.turmaId),c=calcAluno(a.id,a.turmaId,'3º Bimestre');rows.push({Escola:escolaNome(escolaDaTurma(t)),Turma:turmaNome(t),Aluno:a.nome,'Média Atividades':c.atividadeMedia===null?'':c.atividadeMedia.toFixed(2),'Média Final':c.media===null?'':c.media.toFixed(2)})}downloadCSV('notas.csv',rows)}});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBtn').classList.add('hidden')}};
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+$('#todayText').textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
+renderAll();
+
+</script>
+
+<script>
+/* === FIX V4.1: MENU LATERAL MOBILE === */
+(function(){
+  function qs(s){ return document.querySelector(s); }
+  function qsa(s){ return Array.from(document.querySelectorAll(s)); }
+
+  const sidebar = qs('.sidebar');
+  if(!sidebar) return;
+
+  let toggle = qs('.sidebar-toggle');
+  if(!toggle){
+    toggle = document.createElement('button');
+    toggle.className = 'sidebar-toggle';
+    toggle.setAttribute('aria-label','Abrir menu');
+    toggle.innerHTML = '☰';
+    document.body.appendChild(toggle);
+  }
+
+  const overlay = qs('#sidebarOverlay');
+
+  function isMobile(){ return window.matchMedia('(max-width: 900px)').matches; }
+
+  function openMenu(){
+    if(!isMobile()) return;
+    sidebar.classList.add('open');
+    overlay && overlay.classList.add('show');
+    document.body.classList.add('menu-open');
+    toggle.innerHTML = '✕';
+    toggle.setAttribute('aria-label','Fechar menu');
+  }
+
+  function closeMenu(){
+    sidebar.classList.remove('open');
+    overlay && overlay.classList.remove('show');
+    document.body.classList.remove('menu-open');
+    toggle.innerHTML = '☰';
+    toggle.setAttribute('aria-label','Abrir menu');
+  }
+
+  toggle.addEventListener('click', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    sidebar.classList.contains('open') ? closeMenu() : openMenu();
+  });
+
+  overlay && overlay.addEventListener('click', closeMenu);
+
+  qsa('.sidebar .nav-item, .sidebar [data-view], .sidebar a').forEach(function(el){
+    el.addEventListener('click', function(){
+      if(isMobile()) setTimeout(closeMenu, 60);
+    });
+  });
+
+  window.addEventListener('resize', function(){
+    if(!isMobile()){
+      closeMenu();
+      sidebar.classList.remove('open');
+    }
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeMenu();
+  });
+
+  // Garantir rolagem interna mesmo quando o dedo inicia sobre um item do menu.
+  sidebar.addEventListener('touchmove', function(e){
+    e.stopPropagation();
+  }, {passive:true});
+
+  closeMenu();
+  const hist=$('#historicoBimestres');
+  if(hist){
+    const rows=alunos.filter(a=>db.mediasBimestrais?.[a.id] && (
+      db.mediasBimestrais[a.id]['1º Bimestre']!==undefined ||
+      db.mediasBimestrais[a.id]['2º Bimestre']!==undefined
+    ));
+    hist.innerHTML=rows.length?`<table><thead><tr><th>Aluno</th><th>1º Bimestre</th><th>2º Bimestre</th></tr></thead><tbody>${
+      rows.map(a=>{
+        const mb=db.mediasBimestrais[a.id]||{};
+        const m1=mb['1º Bimestre'];
+        const m2=mb['2º Bimestre'];
+        return `<tr><td><b>${esc(a.nome)}</b></td><td>${m1===undefined?'—':Number(m1).toFixed(1)}</td><td>${m2===undefined?'—':Number(m2).toFixed(1)}</td></tr>`;
+      }).join('')
+    }</tbody></table>`:'<p class=muted>Nenhuma média de bimestre anterior importada para esta turma.</p>';
+  }
+})();
+</script>
+
+
+<script>
+/* === V6.4 Segurança === */
+const SECURITY_KEY='professor_control_security_v1';
+
+function securityLoad(){
+  try{return JSON.parse(localStorage.getItem(SECURITY_KEY)||'{}')}catch{return{}}
+}
+function simpleHash(str){
+  // Hash local simples para não guardar a senha em texto puro.
+  // Não substitui autenticação de servidor, mas protege o uso local.
+  let h1=0x811c9dc5;
+  for(let i=0;i<str.length;i++){
+    h1 ^= str.charCodeAt(i);
+    h1 = Math.imul(h1,0x01000193);
+  }
+  return (h1>>>0).toString(16);
+}
+function securityCheckPassword(pass){
+  const s=securityLoad();
+  return !!s.passwordHash && s.passwordHash===simpleHash(pass);
+}
+function securitySetPassword(pass){
+  localStorage.setItem(SECURITY_KEY,JSON.stringify({passwordHash:simpleHash(pass)}));
+}
+
+function initSecurity(){
+  const lock=document.getElementById('authLock');
+  const title=document.getElementById('authTitle');
+  const text=document.getElementById('authText');
+  const pass=document.getElementById('authPass');
+  const pass2=document.getElementById('authPass2');
+  const btn=document.getElementById('authBtn');
+  const err=document.getElementById('authError');
+  if(!lock||!btn)return;
+
+  const sec=securityLoad();
+  const first=!sec.passwordHash;
+
+  if(first){
+    title.textContent='Criar senha de acesso';
+    text.textContent='Este é o primeiro acesso. Crie uma senha para proteger seus dados.';
+    pass.placeholder='Crie uma senha';
+    pass2.classList.remove('hidden');
+    btn.textContent='Salvar senha e entrar';
+  }else{
+    title.textContent='Professor Control';
+    text.textContent='Digite sua senha para acessar o sistema.';
+    pass2.classList.add('hidden');
+    btn.textContent='Entrar';
+  }
+
+  function submit(){
+    err.textContent='';
+    const p=pass.value;
+    if(first){
+      if(p.length<4){err.textContent='A senha deve ter pelo menos 4 caracteres.';return}
+      if(p!==pass2.value){err.textContent='As senhas não conferem.';return}
+      securitySetPassword(p);
+      lock.classList.add('hidden');
+      pass.value=''; pass2.value='';
+    }else{
+      if(!securityCheckPassword(p)){err.textContent='Senha incorreta.';return}
+      lock.classList.add('hidden');
+      pass.value='';
+    }
+  }
+
+  btn.onclick=submit;
+  pass.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+  pass2.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+}
+
+function confirmarExclusaoComSenha(tipo,nome){
+  const aviso=`ATENÇÃO!\n\nVocê está prestes a excluir ${tipo}: ${nome}.\nEsta ação pode remover dados vinculados e não poderá ser desfeita.\n\nDeseja continuar?`;
+  if(!confirm(aviso)) return false;
+
+  const senha=prompt(`Digite a senha do Professor Control para confirmar a exclusão de ${tipo}:`);
+  if(senha===null) return false;
+
+  if(!securityCheckPassword(senha)){
+    alert('Senha incorreta. A exclusão foi cancelada.');
+    return false;
+  }
+  return true;
+}
+
+document.addEventListener('DOMContentLoaded',initSecurity);
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('alterarSenhaBtn');
+  if(
