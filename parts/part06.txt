@@ -1,0 +1,133 @@
+click="delAluno('${a.id}')">Excluir</button></td></tr>`
+    }).join('')}</tbody></table>`:'<p class=muted>Nenhum aluno nesta turma.</p>';
+  }
+  const hist=$('#historicoBimestres');
+  if(hist){
+    const rows=list.filter(a=>{
+      const mb=db.mediasBimestrais?.[a.id]||{};
+      return mb['1º Bimestre']!==undefined || mb['2º Bimestre']!==undefined;
+    });
+    hist.innerHTML=rows.length?`<table><thead><tr><th>Aluno</th><th>1º Bimestre</th><th>2º Bimestre</th></tr></thead><tbody>${rows.map(a=>{
+      const mb=db.mediasBimestrais?.[a.id]||{};
+      const m1=mb['1º Bimestre'],m2=mb['2º Bimestre'];
+      return `<tr><td><b>${esc(limparNomeAluno(a.nome))}</b></td><td>${m1===undefined?'—':Number(m1).toFixed(1)}</td><td>${m2===undefined?'—':Number(m2).toFixed(1)}</td></tr>`;
+    }).join('')}</tbody></table>`:'<p class=muted>Nenhuma média anterior importada para esta turma.</p>';
+  }
+}
+$('#alunosTurma').onchange=renderAlunos;$('#novoAlunoBtn').onclick=()=>{const tid=$('#alunosTurma').value;if(!tid)return toast('Crie e selecione uma turma');modal('Novo aluno',`<label>Nome<input id=mNome required></label><label>Matrícula<input id=mMat></label><label>Número da chamada<input id=mNum type=number></label>`,()=>{if(!$('#mNome').value)return false;db.alunos.push({id:id(),turmaId:tid,nome:$('#mNome').value.trim(),matricula:$('#mMat').value.trim(),numero:$('#mNum').value});save();return true})};window.delAluno=x=>{if(confirm('Excluir aluno?')){db.alunos=db.alunos.filter(a=>a.id!==x);db.frequencias=db.frequencias.filter(f=>f.alunoId!==x);delete db.notas[x];save()}}
+
+async function extractSigeResumoFinal(file){
+  try{
+    const pdfjsLib=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+    const data=new Uint8Array(await file.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data}).promise;
+    let allRows=[];
+    let metaText='';
+
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      const items=content.items
+        .filter(it=>String(it.str||'').trim())
+        .map(it=>({
+          text:String(it.str).replace(/\s+/g,' ').trim(),
+          x:Number(it.transform[4]),
+          y:Number(it.transform[5]),
+          w:Number(it.width||0)
+        }));
+
+      metaText += '\n' + items.map(i=>i.text).join(' ');
+
+      // Detect each matrícula as the anchor of a student row.
+      const anchors=items
+        .filter(i=>/^\d{8,14}$/.test(i.text) && i.y < 650)
+        .sort((a,b)=>b.y-a.y);
+
+      // Remove duplicate anchors at essentially the same position.
+      const unique=[];
+      for(const a of anchors){
+        if(!unique.some(u=>Math.abs(u.y-a.y)<2 && u.text===a.text)) unique.push(a);
+      }
+
+      for(let idx=0; idx<unique.length; idx++){
+        const a=unique[idx];
+        const yAbove = idx===0 ? a.y+18 : (unique[idx-1].y+a.y)/2;
+        const yBelow = idx===unique.length-1 ? a.y-18 : (a.y+unique[idx+1].y)/2;
+
+        // Items belonging to this visual row band.
+        const band=items.filter(i=>i.y<=yAbove && i.y>=yBelow);
+
+        // Order number is left of matrícula.
+        const orderCandidates=band.filter(i=>/^\d{1,3}$/.test(i.text) && i.x < a.x);
+        const numero=orderCandidates.sort((u,v)=>v.x-u.x)[0]?.text||'';
+
+        // Determine column boundaries from the matrícula anchor.
+        // In this SIGE report, name is immediately to the right of matrícula;
+        // bimonthly grades are farther right. Use page-relative positions so
+        // it remains stable across screen/PDF dimensions.
+        const pageWidth=page.view[2];
+        const nameLeft=a.x + Math.max(a.w,45) + 2;
+        const grade1X=pageWidth*0.385;
+        const grade2X=pageWidth*0.455;
+        const grade3X=pageWidth*0.52;
+
+        // Name: any alphabetic text in the row band between matrícula and 1º BIM column.
+        const nameParts=band
+          .filter(i=>i.x>=nameLeft && i.x<grade1X-3 && /[A-Za-zÁÀÃÂÉÊÍÓÔÕÚÇ]/i.test(i.text))
+          .sort((u,v)=>Math.abs(v.y-u.y)>1 ? v.y-u.y : u.x-v.x)
+          .map(i=>i.text)
+          .filter(t=>!/^(Cursando|Transferido|Aprovado|Reprovado)$/i.test(t))
+          .filter(t=>!/^(?:NOME|ALUNO|M[ÉE]DIAS?|1[º°o]?\s*BIM(?:ESTRE)?|2[º°o]?\s*BIM(?:ESTRE)?)$/i.test(String(t).trim()));
+        let nome=limparNomeAluno([...new Set(nameParts)].join(' '));
+
+        // Grade candidates by X position. The first two bimonthly cells are fixed columns.
+        const numeric=band.filter(i=>/^(?:\d{1,2}[,.]\d|--)$/.test(i.text));
+        const nearest=(target,minX,maxX)=>{
+          const arr=numeric.filter(i=>i.x>=minX && i.x<maxX).sort((u,v)=>Math.abs(u.x-target)-Math.abs(v.x-target));
+          return arr[0]?.text||'--';
+        };
+        const g1=nearest(grade1X, grade1X-35, grade2X-5);
+        const g2=nearest(grade2X, grade2X-28, grade3X-5);
+        const parseGrade=s=>s==='--'||!s?null:Number(s.replace(',','.'));
+
+        // Fallback for unusual x scaling: search numeric cells in x order after name area.
+        let media1=parseGrade(g1), media2=parseGrade(g2);
+        if(media1===null || Number.isNaN(media1)){
+          const vals=numeric.filter(i=>i.x>grade1X-45).sort((u,v)=>u.x-v.x).map(i=>i.text);
+          media1=parseGrade(vals[0]); media2=parseGrade(vals[1]);
+        }
+
+        // Strong validation: a valid name cannot be only a grade or punctuation.
+        if(!nome || /^\d+[,.]\d$/.test(nome)){
+          // search a slightly wider band only in the name column, useful for 2-line names
+          const wide=items.filter(i=>i.y<=yAbove+7 && i.y>=yBelow-7 && i.x>=nameLeft && i.x<grade1X-3 && /[A-Za-zÁÀÃÂÉÊÍÓÔÕÚÇ]/i.test(i.text));
+          nome=limparNomeAluno([...new Set(wide.sort((u,v)=>v.y-u.y||u.x-v.x).map(i=>i.text))].join(' '));
+        }
+
+        if(numero && nome && !/^\d+[,.]\d$/.test(nome)){
+          allRows.push({numero,matricula:a.text,nome,media1,media2});
+        }
+      }
+    }
+
+    const clean=metaText.replace(/\s+/g,' ');
+    const escolaMatch=clean.match(/(\d{6,10})\s*-\s*(ESCOLA[^]*?)(?=Ano Letivo|Composição|Professor|Disciplina|Turma|Turno|Carga Horária)/i);
+    const turmaMatch=clean.match(/Turma:\s*([A-Za-z0-9ºª -]+)/i);
+    const discMatch=clean.match(/Disciplina:\s*([^]*?)(?=Turma:|Turno:|Carga Horária|Série:)/i);
+    const serieMatch=clean.match(/Série:\s*([^]*?)(?=Turma:|Turno:|Carga Horária)/i);
+
+    // Deduplicate by matrícula, preferring the row with the longest valid name.
+    const byMat=new Map();
+    for(const r of allRows){
+      const old=byMat.get(r.matricula);
+      if(!old || r.nome.length>old.nome.length) byMat.set(r.matricula,r);
+    }
+
+    return{
+      escolaCodigo:escolaMatch?.[1]||'',
+      escolaNome:escolaMatch?.[2]?.trim()||'',
+      turma:turmaMatch?.[1]?.trim()||'',
+      disciplina:discMatch?.[1]?.trim()||'',
+      serie:serieMatch?.[1]?.trim()||'',
+      alunos:[...byMat.values()].s
