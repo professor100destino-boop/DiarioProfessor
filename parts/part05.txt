@@ -1,0 +1,82 @@
+#alunosEscola');
+  const eid=$('#alunosEscola')?.value||'';
+  options('#alunosTurma',null,eid);
+}
+function renderAll(){
+  renderDashboard();
+  renderEscolas();
+  renderTurmas();
+  syncAlunoTurmas();
+  ['#freqTurma','#atividadesTurma','#notasTurma','#conteudoTurma'].forEach(s=>options(s));
+  renderAlunos();renderFreq();renderAtividades();renderNotas();renderConteudos();renderConfig()
+}
+function calcFreqAluno(alunoId){
+  const regs=db.frequencias.filter(f=>f.alunoId===alunoId);
+  if(!regs.length) return null;
+  const presentes=regs.filter(f=>f.status==='P'||f.status==='J'||f.status==='A').length;
+  return (presentes/regs.length)*100;
+}
+
+function renderDashboard(){const escolaCount=db.escolas.length, turmaCount=db.turmas.length, alunoCount=db.alunos.length;const today=todayISO();const faltasHoje=db.frequencias.filter(f=>f.data===today&&f.status==='F').length;const atividades=db.avaliacoes.filter(a=>a.tipo==='atividade').length;$('#dashboardCards').innerHTML=`<div class=stat><span>Escolas</span><strong>${escolaCount}</strong></div><div class=stat><span>Turmas</span><strong>${turmaCount}</strong></div><div class=stat><span>Alunos</span><strong>${alunoCount}</strong></div><div class=stat><span>Faltas hoje</span><strong>${faltasHoje}</strong></div><div class=stat><span>Atividades</span><strong>${atividades}</strong></div>`;$('#dashTurmas').innerHTML=db.turmas.length?db.turmas.slice(0,6).map(t=>`<div class=list-row><span><b>${esc(turmaNomeCompleto(t))}</b><br><small class=muted>${db.alunos.filter(a=>a.turmaId===t.id).length} alunos</small></span></div>`).join(''):'<span class=muted>Nenhuma turma cadastrada.</span>';const att=[];for(const a of db.alunos){const calc=calcAluno(a.id);const freq=typeof calcFreqAluno==='function'?calcFreqAluno(a.id):null;if(calc.media!==null&&calc.media<Number(db.config.mediaMin||6))att.push({n:a.nome,msg:`Média ${calc.media.toFixed(1)}`,bad:true});else if(freq!==null&&freq<Number(db.config.freqMin||75))att.push({n:a.nome,msg:`Frequência ${freq.toFixed(0)}%`,bad:true})}$('#attentionList').innerHTML=att.length?att.slice(0,8).map(x=>`<div class=list-row><span>${esc(x.n)}</span><span class="badge bad">${x.msg}</span></div>`).join(''):'<span class=muted>Nenhum alerta no momento.</span>'}
+function renderEscolas(){
+  const el=$('#escolasList'); if(!el)return;
+  if(!db.escolas.length){
+    el.innerHTML='<p class=muted>Nenhuma escola cadastrada. Cadastre a primeira escola para depois criar suas turmas.</p>';
+    return;
+  }
+  el.innerHTML=`<table><thead><tr><th>Escola</th><th>Cidade</th><th>Rede</th><th>Turmas</th><th></th></tr></thead><tbody>${
+    db.escolas.map(e=>`<tr>
+      <td><b>${esc(e.nome)}</b></td>
+      <td>${esc(e.cidade||'')}</td>
+      <td>${esc(e.rede||'')}</td>
+      <td>${db.turmas.filter(t=>t.escolaId===e.id).length}</td>
+      <td><button class=link-btn onclick="delEscola('${e.id}')">Excluir</button></td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+$('#novaEscolaBtn').onclick=()=>modal('Nova escola',
+  `<label>Nome da escola<input id=mEscolaNome placeholder="Ex.: Colégio Estadual ..." required></label>
+   <label>Cidade<input id=mEscolaCidade placeholder="Bela Vista de Goiás"></label>
+   <label>Rede<select id=mEscolaRede><option>Estadual</option><option>Municipal</option><option>Particular</option><option>Federal</option><option>Outra</option></select></label>`,
+  ()=>{
+    const nome=$('#mEscolaNome').value.trim();
+    if(!nome)return false;
+    db.escolas.push({id:id(),nome,cidade:$('#mEscolaCidade').value.trim(),rede:$('#mEscolaRede').value});
+    save();toast('Escola cadastrada');return true;
+  }
+);
+window.delEscola=eid=>{
+  const e=db.escolas.find(x=>x.id===eid);
+  const qtd=db.turmas.filter(t=>t.escolaId===eid).length;
+  if(qtd){alert('Esta escola possui turmas vinculadas. Exclua ou transfira as turmas antes de excluir a escola.');return}
+  if(!confirmarExclusaoComSenha('a escola',e?.nome||''))return;
+  db.escolas=db.escolas.filter(x=>x.id!==eid);save()
+};
+
+function renderTurmas(){const el=$('#turmasList');if(!db.turmas.length){el.innerHTML='<p class=muted>Nenhuma turma cadastrada. Cadastre uma escola e depois crie sua primeira turma.</p>';return}el.innerHTML=`<table><thead><tr><th>Escola</th><th>Série</th><th>Turma</th><th>Disciplina</th><th>Turno</th><th>Alunos</th><th></th></tr></thead><tbody>${db.turmas.map(t=>`<tr><td><b>${esc(escolaNome(escolaDaTurma(t)))}</b></td><td>${esc(t.serie)}</td><td>${esc(t.turma)}</td><td>${esc(t.disciplina)}</td><td>${esc(t.turno)}</td><td>${db.alunos.filter(a=>a.turmaId===t.id).length}</td><td><button class=link-btn onclick="delTurma('${t.id}')">Excluir</button></td></tr>`).join('')}</tbody></table>`}
+window.delTurma=x=>{if(confirm('Excluir esta turma e os dados relacionados?')){const alunos=db.alunos.filter(a=>a.turmaId===x).map(a=>a.id);db.turmas=db.turmas.filter(t=>t.id!==x);db.alunos=db.alunos.filter(a=>a.turmaId!==x);db.frequencias=db.frequencias.filter(f=>!alunos.includes(f.alunoId));db.avaliacoes=db.avaliacoes.filter(a=>a.turmaId!==x);db.conteudos=db.conteudos.filter(c=>c.turmaId!==x);for(const aid of Object.keys(db.notas))if(alunos.includes(aid))delete db.notas[aid];save()}}
+function modal(title,html,onSave){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;const d=$('#modal');d.showModal();$('#modalSave').onclick=e=>{e.preventDefault();if(onSave())d.close()}}
+$('#novaTurmaBtn').onclick=()=>{
+  if(!db.escolas.length){toast('Cadastre uma escola primeiro');go('escolas');return}
+  const escolasHtml=db.escolas.map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('');
+  modal('Nova turma',
+    `<label>Escola<select id=mEscolaId>${escolasHtml}</select></label>
+     <label>Série/Ano<input id=mSerie placeholder="8º Ano" required></label>
+     <label>Turma<input id=mTurma placeholder="D" required></label>
+     <label>Disciplina<input id=mDisc placeholder="História" required></label>
+     <label>Turno<select id=mTurno><option>Matutino</option><option>Vespertino</option><option>Noturno</option></select></label>`,
+    ()=>{
+      if(!$('#mEscolaId').value||!$('#mSerie').value||!$('#mTurma').value||!$('#mDisc').value)return false;
+      db.turmas.push({id:id(),escolaId:$('#mEscolaId').value,serie:$('#mSerie').value, turma:$('#mTurma').value,disciplina:$('#mDisc').value,turno:$('#mTurno').value});
+      save();toast('Turma criada');return true
+    }
+  )
+};
+function renderAlunos(){
+  const tid=$('#alunosTurma')?.value;
+  const list=db.alunos.filter(a=>a.turmaId===tid);
+  const listEl=$('#alunosList');
+  if(listEl){
+    listEl.innerHTML=list.length?`<table><thead><tr><th>Nº</th><th>Aluno</th><th>Matrícula</th><th>Frequência</th><th>Média atual</th><th></th></tr></thead><tbody>${list.map(a=>{
+      const f=calcFreqAluno(a.id),m=calcAluno(a.id).media;
+      return `<tr><td>${esc(a.numero||'')}</td><td><b>${esc(limparNomeAluno(a.nome))}</b></td><td>${esc(a.matricula||'')}</td><td>${f===null?'—':f.toFixed(0)+'%'}</td><td>${m===null?'—':m.toFixed(1)}</td><td><button class=link-btn on
