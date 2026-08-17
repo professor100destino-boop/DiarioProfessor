@@ -1,0 +1,132 @@
+e organizada.</h2>
+            <p>Controle suas turmas, frequência, atividades, provas e conteúdos em um ambiente com cara de aplicativo de verdade, simples de usar e com navegação clara.</p>
+            <div class="hero-actions">
+              <button class="primary hero-action-btn hero-action-blue" data-go="frequencia">Chamada<span>Frequência da turma</span></button>
+              <button class="primary hero-action-btn hero-action-green" data-go="notas">Notas<span>Atividades, provas e média</span></button>
+            </div>
+          </div>
+          <div class="hero-side">
+            <div class="spotlight-card">
+              <span>Fluxo rápido</span>
+              <strong>Turma → Aula → Chamada → Nota</strong>
+              <small>Menos cliques e mais organização para o dia a dia.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="cards" id="dashboardCards"></div>
+
+        <div class="shortcut-grid">
+          <button class="shortcut-card" data-go="turmas"><span>📚</span><b>Gerenciar Turmas</b><small>Cadastre séries, turmas, disciplina e turno.</small></button>
+          <button class="shortcut-card" data-go="alunos"><span>📥</span><b>Importar Alunos</b><small>Use CSV ou planilha do SIGE.</small></button>
+          <button class="shortcut-card" data-go="frequencia"><span>✅</span><b>Fazer Chamada</b><small>Marque presença com poucos toques.</small></button>
+          <button class="shortcut-card" data-go="relatorios"><span>📊</span><b>Exportar Relatórios</b><small>Gere CSV e imprima como PDF.</small></button>
+        </div>
+
+        <div class="grid2">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Alunos que precisam de atenção</h3>
+              <span class="panel-tag">alertas automáticos</span>
+            </div>
+            <div id="attentionList" class="list-empty">Cadastre notas ou faltas para gerar alertas.</div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Turmas cadastradas</h3>
+              <button class="link-btn" data-go="turmas">Ver todas</button>
+            </div>
+            <div id="dashTurmas" class="simple-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-escolas" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Escolas</h2>
+              <p>Cadastre todas as escolas em que você trabalha. Cada turma ficará vinculada a uma escola.</p>
+            </div>
+            <div class="toolbar"><button class="primary" id="novaEscolaBtn">+ Nova escola</button></div>
+          </div>
+          <div class="panel">
+            <div id="escolasList" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-turmas" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Turmas</h2>
+              <p>Cadastre e organize suas turmas por série, letra, disciplina e turno.</p>
+            </div>
+            <div class="toolbar"><button class="primary" id="novaTurmaBtn">+ Nova turma</button></div>
+          </div>
+          <div class="panel"><div id="turmasList" class="table-wrap"></div></div>
+        </div>
+      </section>
+
+      <section id="view-alunos" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Alunos</h2>
+              <p>Cadastre manualmente ou importe os estudantes de uma planilha do SIGE.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="toolbar wrap">
+              <select id="alunosEscola" aria-label="Escolha a escola"></select>
+              <select id="alunosTurma" aria-label="Escolha a turma"></select>
+              <button class="primary" id="novoAlunoBtn">+ Aluno</button>
+              <label class="primary ghost file-label">Importar SIGE/PDF/Planilha<input type="file" id="importFile" accept=".pdf,.csv,.xlsx,.xls" hidden></label>
+            </div>
+            <div class="notice"><b>Importação:</b> escolha primeiro a <b>escola</b> e depois a <b>turma vinculada</b>. Você pode importar o PDF “Diário de Classe - Resumo Final” do SIGE ou uma planilha. No PDF, o sistema também importa automaticamente as médias do <b>1º e 2º bimestres</b> e limpa resíduos do cabeçalho dos nomes.</div>
+            <div id="alunosList" class="table-wrap"></div>
+            <div class="formula-box" style="margin-top:16px">
+              <strong>Médias importadas do SIGE:</strong> as médias do 1º e 2º bimestres ficam registradas como resultados históricos e não são recalculadas pelas atividades/provas atuais.
+            </div>
+            <div id="historicoBimestres" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-frequencia" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Frequência</h2>
+              <p>Chamada rápida com todos presentes por padrão e alteração apenas dos casos necessários.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="toolbar wrap">
+              <select id="freqTurma"></select>
+              <input type="date" id="freqData" />
+              <button class="primary ghost" id="todosPresentesBtn">Todos presentes</button>
+              <button class="primary" id="salvarFreqBtn">Salvar chamada</button>
+            </div>
+            <div id="freqList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-atividades" class="view">
+        <div class="section-shell">
+          <div class="section-head"><div><h2>Controle de Atividades</h2><p>Cadastre as atividades e lance as notas separadamente das provas.</p></div></div>
+          <div class="panel">
+            <div class="toolbar wrap"><select id="atividadesTurma"></select><select id="atividadesBimestre"><option>1º Bimestre</option><option>2º Bimestre</option><option selected>3º Bimestre</option><option>4º Bimestre</option></select><button class="primary" id="novaAtividadeBtn">+ Nova atividade</button></div>
+            <div class="formula-box"><strong>Média das Atividades:</strong> soma das notas das atividades ÷ quantidade de atividades cadastradas. Essa média conta como <b>uma única nota</b> na média final.</div>
+            <div id="atividadesTable" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-notas" class="view">
+        <div class="section-shell">
+          <div class="section-head"><div><h2>Provas e Média Final</h2><p>As provas ficam separadas. A média das atividades entra como uma única nota.</p></div></div>
+          <div class="panel">
+            <div class="toolbar wrap"><select id="notasTurma"></select><select id="notasBimestre"><option>1º Bimestre</option><option>2º Bimestre</option><optio
