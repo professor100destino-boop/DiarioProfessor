@@ -1,129 +1,143 @@
-!b)return;
-  b.onclick=()=>{
-    const atual=prompt('Digite a senha atual:');
-    if(atual===null)return;
-    if(!securityCheckPassword(atual)){alert('Senha atual incorreta.');return}
-    const nova=prompt('Digite a nova senha (mínimo 4 caracteres):');
-    if(nova===null)return;
-    if(nova.length<4){alert('A nova senha deve ter pelo menos 4 caracteres.');return}
-    const confirma=prompt('Repita a nova senha:');
-    if(confirma!==nova){alert('As senhas não conferem.');return}
-    securitySetPassword(nova);
-    alert('Senha alterada com sucesso.');
-  };
-});
+${esc(a.metodologia)}</p></div>`:''}
+    ${a.avaliacao?`<div class="lesson-field"><h4>Avaliação</h4><p>${esc(a.avaliacao)}</p></div>`:''}
+    ${a.raw?`<div class="lesson-field"><h4>Informações adicionais</h4><p>${esc(a.raw)}</p></div>`:''}
+  `;
+  if(scroll) detalhe.scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+window.excluirPlanejamento=function(pid){
+  const p=db.planejamentos.find(x=>x.id===pid); if(!p)return;
+  if(!confirmarExclusaoComSenha('o planejamento',p.nome||p.arquivo||''))return;
+  db.planejamentos=db.planejamentos.filter(x=>x.id!==pid);
+  if(planejamentoAtualId===pid){planejamentoAtualId=null;aulaAtualNumero=null}
+  save();
+  alert('Planejamento excluído com sucesso.');
+};
+
+if($('#planDocxFile')) $('#planDocxFile').onchange=async e=>{
+  const file=e.target.files[0];
+  const tid=$('#planTurma')?.value||'';
+  if(!tid){toast('Selecione a escola e a turma antes de importar');e.target.value='';return}
+  if(!file)return;
+
+  try{
+    toast('Lendo planejamento...');
+    const aulas=await lerPlanejamentoDocx(file);
+    const t=db.turmas.find(x=>x.id===tid);
+    const nomeBase=file.name.replace(/\.docx$/i,'');
+
+    if(!confirm(`Foram encontradas ${aulas.length} aulas em "${file.name}".\n\nImportar para ${turmaNomeCompleto(t)}?`)){
+      e.target.value=''; return;
+    }
+
+    const existente=db.planejamentos.find(p=>p.turmaId===tid && p.arquivo===file.name);
+    if(existente){
+      existente.aulas=aulas;
+      existente.nome=nomeBase;
+      existente.importadoEm=new Date().toISOString();
+      planejamentoAtualId=existente.id;
+    }else{
+      const plan={id:id(),turmaId:tid,nome:nomeBase,arquivo:file.name,importadoEm:new Date().toISOString(),aulas};
+      db.planejamentos.push(plan);
+      planejamentoAtualId=plan.id;
+    }
+    localStorage.setItem(KEY,JSON.stringify(db));
+    renderPlanejamentos();
+    abrirPlanejamento(planejamentoAtualId,1);
+    alert(`Planejamento importado com sucesso.\n${aulas.length} aulas criadas.`);
+  }catch(err){
+    console.error(err);
+    alert(err.message||'Erro ao importar planejamento.');
+  }finally{
+    e.target.value='';
+  }
+};
+
+
+function renderConfig(){$('#profNome').value=db.config.profNome||'';$('#escolaNome').value=db.config.escolaNome||'';$('#mediaMin').value=db.config.mediaMin??6;$('#freqMin').value=db.config.freqMin??75}$('#saveConfigBtn').onclick=()=>{db.config={profNome:$('#profNome').value,escolaNome:$('#escolaNome').value,mediaMin:Number($('#mediaMin').value||6),freqMin:Number($('#freqMin').value||75)};save();toast('Configurações salvas')};$('#resetBtn').onclick=()=>{if(confirm('Isso apagará TODOS os dados deste dispositivo. Continuar?')){db=emptyState();save();toast('Dados apagados')}};
+function downloadCSV(name,rows){if(!rows.length)return toast('Sem dados para exportar');const keys=Object.keys(rows[0]);const val=v=>'"'+String(v??'').replaceAll('"','""')+'"';const csv='\ufeff'+[keys.join(';'),...rows.map(r=>keys.map(k=>val(r[k])).join(';'))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$$('[data-report]').forEach(b=>b.onclick=()=>{const type=b.dataset.report;if(type==='alunos')downloadCSV('alunos.csv',db.alunos.map(a=>{const t=db.turmas.find(x=>x.id===a.turmaId);const mb=db.mediasBimestrais?.[a.id]||{};return{Escola:escolaNome(escolaDaTurma(t)),Turma:turmaNome(t),Numero:a.numero,Nome:a.nome,Matricula:a.matricula,'1º Bimestre':mb['1º Bimestre']??'','2º Bimestre':mb['2º Bimestre']??''}}));if(type==='frequencia')downloadCSV('frequencia.csv',db.frequencias.map(f=>{const a=db.alunos.find(x=>x.id===f.alunoId);return{Data:f.data,Aluno:a?.nome||'',Status:f.status}}));if(type==='notas'){const rows=[];for(const a of db.alunos){const t=db.turmas.find(x=>x.id===a.turmaId),c=calcAluno(a.id,a.turmaId,'3º Bimestre');rows.push({Escola:escolaNome(escolaDaTurma(t)),Turma:turmaNome(t),Aluno:a.nome,'Média Atividades':c.atividadeMedia===null?'':c.atividadeMedia.toFixed(2),'Média Final':c.media===null?'':c.media.toFixed(2)})}downloadCSV('notas.csv',rows)}});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBtn').classList.add('hidden')}};
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+$('#todayText').textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
+renderAll();
+
 </script>
 
-
 <script>
+/* === FIX V4.1: MENU LATERAL MOBILE === */
 (function(){
-  const status=document.getElementById('offlineStatus');
+  function qs(s){ return document.querySelector(s); }
+  function qsa(s){ return Array.from(document.querySelectorAll(s)); }
 
-  function setStatus(text,cls){
-    if(!status)return;
-    status.textContent=text;
-    status.className='offline-status '+cls;
+  const sidebar = qs('.sidebar');
+  if(!sidebar) return;
+
+  let toggle = qs('.sidebar-toggle');
+  if(!toggle){
+    toggle = document.createElement('button');
+    toggle.className = 'sidebar-toggle';
+    toggle.setAttribute('aria-label','Abrir menu');
+    toggle.innerHTML = '☰';
+    document.body.appendChild(toggle);
   }
 
-  function updateNetworkBadge(){
-    if(!navigator.onLine){
-      setStatus('✓ Funcionando offline','offline');
-    }
+  const overlay = qs('#sidebarOverlay');
+
+  function isMobile(){ return window.matchMedia('(max-width: 900px)').matches; }
+
+  function openMenu(){
+    if(!isMobile()) return;
+    sidebar.classList.add('open');
+    overlay && overlay.classList.add('show');
+    document.body.classList.add('menu-open');
+    toggle.innerHTML = '✕';
+    toggle.setAttribute('aria-label','Fechar menu');
   }
 
-  if(!('serviceWorker' in navigator)){
-    setStatus('Navegador sem suporte offline','error');
-    return;
+  function closeMenu(){
+    sidebar.classList.remove('open');
+    overlay && overlay.classList.remove('show');
+    document.body.classList.remove('menu-open');
+    toggle.innerHTML = '☰';
+    toggle.setAttribute('aria-label','Abrir menu');
   }
 
-  if(location.protocol!=='https:' && location.hostname!=='localhost'){
-    setStatus('Publique/instale por HTTPS para ativar offline','error');
-    return;
-  }
+  toggle.addEventListener('click', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    sidebar.classList.contains('open') ? closeMenu() : openMenu();
+  });
 
-  setStatus('Preparando uso 100% offline…','loading');
+  overlay && overlay.addEventListener('click', closeMenu);
 
-  window.addEventListener('load', async ()=>{
-    try{
-      const reg=await navigator.serviceWorker.register('./service-worker.js');
-      await navigator.serviceWorker.ready;
+  qsa('.sidebar .nav-item, .sidebar [data-view], .sidebar a').forEach(function(el){
+    el.addEventListener('click', function(){
+      if(isMobile()) setTimeout(closeMenu, 60);
+    });
+  });
 
-      // Ask the SW to cache every component needed by PDF and spreadsheets.
-      const controller=navigator.serviceWorker.controller || reg.active || reg.waiting;
-      if(controller){
-        controller.postMessage({type:'PREPARE_OFFLINE'});
-      }
-
-      // Confirm from cache state.
-      const check=async()=>{
-        try{
-          const resp=await fetch('./offline-ready.json',{cache:'no-store'});
-          if(resp.ok){
-            setStatus(navigator.onLine?'✓ Pronto para uso offline':'✓ Funcionando offline',
-                      navigator.onLine?'ready':'offline');
-          }
-        }catch{
-          if(!navigator.onLine)setStatus('✓ Funcionando offline','offline');
-        }
-      };
-      setTimeout(check,1800);
-      setTimeout(check,4500);
-    }catch(err){
-      console.error(err);
-      setStatus('Não foi possível preparar o modo offline','error');
+  window.addEventListener('resize', function(){
+    if(!isMobile()){
+      closeMenu();
+      sidebar.classList.remove('open');
     }
   });
 
-  navigator.serviceWorker.addEventListener('message',event=>{
-    if(event.data?.type==='OFFLINE_READY'){
-      setStatus(navigator.onLine?'✓ Pronto para uso offline':'✓ Funcionando offline',
-                navigator.onLine?'ready':'offline');
-    }
-    if(event.data?.type==='OFFLINE_ERROR'){
-      setStatus('Falha ao baixar componentes offline','error');
-    }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeMenu();
   });
 
-  window.addEventListener('online',()=>setStatus('✓ Pronto para uso offline','ready'));
-  window.addEventListener('offline',updateNetworkBadge);
-  updateNetworkBadge();
-})();
-</script>
+  // Garantir rolagem interna mesmo quando o dedo inicia sobre um item do menu.
+  sidebar.addEventListener('touchmove', function(e){
+    e.stopPropagation();
+  }, {passive:true});
 
-<script>
-/* Proteção final das exclusões */
-window.delAluno=function(aid){
-  const a=db.alunos.find(x=>x.id===aid);
-  if(!a)return;
-  if(!confirmarExclusaoComSenha('o aluno',a.nome))return;
-  db.alunos=db.alunos.filter(x=>x.id!==aid);
-  db.frequencias=db.frequencias.filter(f=>f.alunoId!==aid);
-  delete db.notas[aid];
-  if(db.mediasBimestrais) delete db.mediasBimestrais[aid];
-  save();
-  alert('Aluno excluído com sucesso.');
-};
-window.delTurma=function(tid){
-  const t=db.turmas.find(x=>x.id===tid);
-  if(!t)return;
-  const qtd=db.alunos.filter(a=>a.turmaId===tid).length;
-  const nome=turmaNomeCompleto(t);
-  const aviso=`ATENÇÃO!\n\nVocê solicitou excluir a turma:\n${nome}.\n\nEsta turma possui ${qtd} aluno(s) vinculado(s). Os dados relacionados poderão ser apagados.`;
-  if(!confirm(aviso+'\n\nDeseja continuar?'))return;
-  const senha=prompt('Digite a senha do Professor Control para confirmar a exclusão da turma:');
-  if(senha===null)return;
-  if(!securityCheckPassword(senha)){alert('Senha incorreta. A exclusão foi cancelada.');return}
-  const alunosDaTurma=db.alunos.filter(a=>a.turmaId===tid).map(a=>a.id);
-  db.turmas=db.turmas.filter(x=>x.id!==tid);
-  db.alunos=db.alunos.filter(a=>a.turmaId!==tid);
-  db.avaliacoes=db.avaliacoes.filter(a=>a.turmaId!==tid);
-  db.conteudos=db.conteudos.filter(c=>c.turmaId!==tid);
-  db.frequencias=db.frequencias.filter(f=>!alunosDaTurma.includes(f.alunoId));
-  for(const aid of alunosDaTurma){delete db.notas[aid]; if(db.mediasBimestrais)delete db.mediasBimestrais[aid];}
-  save();
-  alert('Turma excluída com sucesso.');
-};
-</script>
-
-</body>
-</html>
+  closeMenu();
+  const hist=$('#historicoBimestres');
+  if(hist){
+    const rows=alunos.filter(a=>db.mediasBimestrais?.[a.id] && (
+      db.mediasBimestrais[a.id]['1º Bimestre']!==undefined ||
+      db.mediasBimestrais[a.id]['2º Bimestre']!==undefined
+    ));
+    hist.i
