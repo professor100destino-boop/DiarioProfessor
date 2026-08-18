@@ -246,14 +246,11 @@ hr{border:0;border-top:1px solid var(--border);margin:16px 0}
 
   </style>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
 
 <style>
 /* === FIX V4.1: BARRA LATERAL RESPONSIVA === */
 .sidebar{
   overflow-y:auto !important;
   overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
-  scrollbar-width:thin;
-}
-.sidebar::-webkit-scrollbar{
+  -webkit-overflow-scrolling:to
