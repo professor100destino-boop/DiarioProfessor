@@ -1,0 +1,200 @@
+nnerHTML=rows.length?`<table><thead><tr><th>Aluno</th><th>1º Bimestre</th><th>2º Bimestre</th></tr></thead><tbody>${
+      rows.map(a=>{
+        const mb=db.mediasBimestrais[a.id]||{};
+        const m1=mb['1º Bimestre'];
+        const m2=mb['2º Bimestre'];
+        return `<tr><td><b>${esc(a.nome)}</b></td><td>${m1===undefined?'—':Number(m1).toFixed(1)}</td><td>${m2===undefined?'—':Number(m2).toFixed(1)}</td></tr>`;
+      }).join('')
+    }</tbody></table>`:'<p class=muted>Nenhuma média de bimestre anterior importada para esta turma.</p>';
+  }
+})();
+</script>
+
+
+<script>
+/* === V6.4 Segurança === */
+const SECURITY_KEY='professor_control_security_v1';
+
+function securityLoad(){
+  try{return JSON.parse(localStorage.getItem(SECURITY_KEY)||'{}')}catch{return{}}
+}
+function simpleHash(str){
+  // Hash local simples para não guardar a senha em texto puro.
+  // Não substitui autenticação de servidor, mas protege o uso local.
+  let h1=0x811c9dc5;
+  for(let i=0;i<str.length;i++){
+    h1 ^= str.charCodeAt(i);
+    h1 = Math.imul(h1,0x01000193);
+  }
+  return (h1>>>0).toString(16);
+}
+function securityCheckPassword(pass){
+  const s=securityLoad();
+  return !!s.passwordHash && s.passwordHash===simpleHash(pass);
+}
+function securitySetPassword(pass){
+  localStorage.setItem(SECURITY_KEY,JSON.stringify({passwordHash:simpleHash(pass)}));
+}
+
+function initSecurity(){
+  const lock=document.getElementById('authLock');
+  const title=document.getElementById('authTitle');
+  const text=document.getElementById('authText');
+  const pass=document.getElementById('authPass');
+  const pass2=document.getElementById('authPass2');
+  const btn=document.getElementById('authBtn');
+  const err=document.getElementById('authError');
+  if(!lock||!btn)return;
+
+  const sec=securityLoad();
+  const first=!sec.passwordHash;
+
+  if(first){
+    title.textContent='Criar senha de acesso';
+    text.textContent='Este é o primeiro acesso. Crie uma senha para proteger seus dados.';
+    pass.placeholder='Crie uma senha';
+    pass2.classList.remove('hidden');
+    btn.textContent='Salvar senha e entrar';
+  }else{
+    title.textContent='Professor Control';
+    text.textContent='Digite sua senha para acessar o sistema.';
+    pass2.classList.add('hidden');
+    btn.textContent='Entrar';
+  }
+
+  function submit(){
+    err.textContent='';
+    const p=pass.value;
+    if(first){
+      if(p.length<4){err.textContent='A senha deve ter pelo menos 4 caracteres.';return}
+      if(p!==pass2.value){err.textContent='As senhas não conferem.';return}
+      securitySetPassword(p);
+      lock.classList.add('hidden');
+      pass.value=''; pass2.value='';
+    }else{
+      if(!securityCheckPassword(p)){err.textContent='Senha incorreta.';return}
+      lock.classList.add('hidden');
+      pass.value='';
+    }
+  }
+
+  btn.onclick=submit;
+  pass.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+  pass2.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+}
+
+function confirmarExclusaoComSenha(tipo,nome){
+  const aviso=`ATENÇÃO!\n\nVocê está prestes a excluir ${tipo}: ${nome}.\nEsta ação pode remover dados vinculados e não poderá ser desfeita.\n\nDeseja continuar?`;
+  if(!confirm(aviso)) return false;
+
+  const senha=prompt(`Digite a senha do Professor Control para confirmar a exclusão de ${tipo}:`);
+  if(senha===null) return false;
+
+  if(!securityCheckPassword(senha)){
+    alert('Senha incorreta. A exclusão foi cancelada.');
+    return false;
+  }
+  return true;
+}
+
+document.addEventListener('DOMContentLoaded',initSecurity);
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('alterarSenhaBtn');
+  if(!b)return;
+  b.onclick=()=>{
+    const atual=prompt('Digite a senha atual:');
+    if(atual===null)return;
+    if(!securityCheckPassword(atual)){alert('Senha atual incorreta.');return}
+    const nova=prompt('Digite a nova senha (mínimo 4 caracteres):');
+    if(nova===null)return;
+    if(nova.length<4){alert('A nova senha deve ter pelo menos 4 caracteres.');return}
+    const confirma=prompt('Repita a nova senha:');
+    if(confirma!==nova){alert('As senhas não conferem.');return}
+    securitySetPassword(nova);
+    alert('Senha alterada com sucesso.');
+  };
+});
+</script>
+
+
+<script>
+(function(){
+  const status=document.getElementById('offlineStatus');
+
+  function setStatus(text,cls){
+    if(!status)return;
+    status.textContent=text;
+    status.className='offline-status '+cls;
+  }
+
+  function updateNetworkBadge(){
+    if(!navigator.onLine){
+      setStatus('✓ Funcionando offline','offline');
+    }
+  }
+
+  if(!('serviceWorker' in navigator)){
+    setStatus('Navegador sem suporte offline','error');
+    return;
+  }
+
+  if(location.protocol!=='https:' && location.hostname!=='localhost'){
+    setStatus('Publique/instale por HTTPS para ativar offline','error');
+    return;
+  }
+
+  setStatus('Preparando uso 100% offline…','loading');
+
+  window.addEventListener('load', async ()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./service-worker.js');
+      await navigator.serviceWorker.ready;
+
+      // Ask the SW to cache every component needed by PDF and spreadsheets.
+      const controller=navigator.serviceWorker.controller || reg.active || reg.waiting;
+      if(controller){
+        controller.postMessage({type:'PREPARE_OFFLINE'});
+      }
+
+      // Confirm from cache state.
+      const check=async()=>{
+        try{
+          const resp=await fetch('./offline-ready.json',{cache:'no-store'});
+          if(resp.ok){
+            setStatus(navigator.onLine?'✓ Pronto para uso offline':'✓ Funcionando offline',
+                      navigator.onLine?'ready':'offline');
+          }
+        }catch{
+          if(!navigator.onLine)setStatus('✓ Funcionando offline','offline');
+        }
+      };
+      setTimeout(check,1800);
+      setTimeout(check,4500);
+    }catch(err){
+      console.error(err);
+      setStatus('Não foi possível preparar o modo offline','error');
+    }
+  });
+
+  navigator.serviceWorker.addEventListener('message',event=>{
+    if(event.data?.type==='OFFLINE_READY'){
+      setStatus(navigator.onLine?'✓ Pronto para uso offline':'✓ Funcionando offline',
+                navigator.onLine?'ready':'offline');
+    }
+    if(event.data?.type==='OFFLINE_ERROR'){
+      setStatus('Falha ao baixar componentes offline','error');
+    }
+  });
+
+  window.addEventListener('online',()=>setStatus('✓ Pronto para uso offline','ready'));
+  window.addEventListener('offline',updateNetworkBadge);
+  updateNetworkBadge();
+})();
+</script>
+
+</body>
+</html>
