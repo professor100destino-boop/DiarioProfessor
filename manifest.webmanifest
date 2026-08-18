@@ -1,15 +1,23 @@
 {
   "name": "Professor Control Offline",
   "short_name": "Prof Control",
-  "description": "Professor Control com funcionamento offline após instalação: alunos, SIGE/PDF, planilhas, frequência, atividades, provas, médias e relatórios.",
-  "start_url": "./index.html",
+  "description": "Controle docente offline com escolas, turmas, alunos, frequência, notas e planejamento por aulas.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
   "theme_color": "#0b2a55",
   "orientation": "any",
   "icons": [
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
