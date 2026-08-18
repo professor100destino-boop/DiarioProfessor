@@ -1,4 +1,4 @@
-const CACHE='professor-control-offline-v2';
+const CACHE='professor-control-offline-v2-2';
 const LOCAL=[
   './',
   './index.html',
@@ -21,6 +21,7 @@ const LOCAL=[
 const REMOTE=[
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs'
 ];
