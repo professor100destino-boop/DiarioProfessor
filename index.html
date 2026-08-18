@@ -16,7 +16,74 @@
   try{
     const parts=['./parts/part00.txt','./parts/part01.txt','./parts/part02.txt','./parts/part03.txt','./parts/part04.txt','./parts/part05.txt','./parts/part06.txt','./parts/part07.txt','./parts/part08.txt','./parts/part09.txt','./parts/part10.txt','./parts/part11.txt'];
     const texts=await Promise.all(parts.map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.text()})));
-    document.open();document.write(texts.join(''));document.close();
+    const patch=`<script>
+(function(){
+  const bimSel=document.querySelector('#planBimestre');
+  if(!bimSel)return;
+
+  bimSel.onchange=()=>renderPlanejamentos();
+
+  renderPlanejamentos=function(){
+    const list=$('#planejamentosList');
+    if(!list)return;
+    const tid=$('#planTurma')?.value||'';
+    const bim=$('#planBimestre')?.value||'3º Bimestre';
+    const plans=db.planejamentos.filter(p=>(!tid||p.turmaId===tid) && ((p.bimestre||'3º Bimestre')===bim));
+    if(!plans.length){
+      list.innerHTML='<p class=muted style="margin-top:18px">Nenhum planejamento importado para esta turma no '+bim+'.</p>';
+      $('#planAulasArea')?.classList.add('hidden');
+      return;
+    }
+    list.innerHTML=plans.map(p=>{
+      const t=db.turmas.find(x=>x.id===p.turmaId);
+      return '<div class="plan-card"><div class="plan-card-row"><div><b>'+esc(p.nome||p.arquivo||'Planejamento')+'</b><br><small>'+esc(turmaNomeCompleto(t))+' • '+esc(p.bimestre||'3º Bimestre')+' • '+p.aulas.length+' aulas</small></div><div class="toolbar"><button class="primary ghost" onclick="abrirPlanejamento(\''+p.id+'\')">Abrir aulas</button><button class="danger" onclick="excluirPlanejamento(\''+p.id+'\')">Excluir</button></div></div></div>';
+    }).join('');
+    if(planejamentoAtualId && plans.some(p=>p.id===planejamentoAtualId)) abrirPlanejamento(planejamentoAtualId,aulaAtualNumero,false);
+  };
+
+  window.abrirPlanejamento=function(pid,num=null,scroll=true){
+    const p=db.planejamentos.find(x=>x.id===pid); if(!p)return;
+    planejamentoAtualId=pid;
+    $('#planAulasArea').classList.remove('hidden');
+    $('#planTituloAtual').textContent=p.nome||p.arquivo||'Planejamento';
+    const t=db.turmas.find(x=>x.id===p.turmaId);
+    $('#planMetaAtual').textContent=turmaNomeCompleto(t)+' • '+(p.bimestre||'3º Bimestre')+' • '+p.aulas.length+' aulas';
+    $('#planLessonGrid').innerHTML=p.aulas.map(a=>'<button class="lesson-btn '+(a.numero===num?'active':'')+'" onclick="abrirAulaPlanejamento(\''+pid+'\','+a.numero+')">Aula '+a.numero+'</button>').join('');
+    if(num) abrirAulaPlanejamento(pid,num,scroll); else $('#planLessonDetail').classList.add('hidden');
+    if(scroll) $('#planAulasArea').scrollIntoView({behavior:'smooth',block:'start'});
+  };
+
+  const inp=$('#planDocxFile');
+  if(inp) inp.onchange=async e=>{
+    const file=e.target.files[0];
+    const tid=$('#planTurma')?.value||'';
+    const bimestre=$('#planBimestre')?.value||'3º Bimestre';
+    if(!tid){toast('Selecione a escola e a turma antes de importar');e.target.value='';return}
+    if(!file)return;
+    try{
+      toast('Lendo planejamento...');
+      const aulas=await lerPlanejamentoDocx(file);
+      const t=db.turmas.find(x=>x.id===tid);
+      const nomeBase=file.name.replace(/\\.docx$/i,'');
+      if(!confirm('Foram encontradas '+aulas.length+' aulas em "'+file.name+'".\n\nImportar para '+turmaNomeCompleto(t)+' - '+bimestre+'?')){e.target.value='';return}
+      const existente=db.planejamentos.find(p=>p.turmaId===tid && (p.bimestre||'3º Bimestre')===bimestre && p.arquivo===file.name);
+      if(existente){
+        existente.aulas=aulas; existente.nome=nomeBase; existente.bimestre=bimestre; existente.importadoEm=new Date().toISOString(); planejamentoAtualId=existente.id;
+      }else{
+        const plan={id:id(),turmaId:tid,bimestre,nome:nomeBase,arquivo:file.name,importadoEm:new Date().toISOString(),aulas};
+        db.planejamentos.push(plan); planejamentoAtualId=plan.id;
+      }
+      localStorage.setItem(KEY,JSON.stringify(db));
+      renderPlanejamentos(); abrirPlanejamento(planejamentoAtualId,1);
+      alert('Planejamento importado com sucesso.\n'+aulas.length+' aulas criadas no '+bimestre+'.');
+    }catch(err){console.error(err);alert(err.message||'Erro ao importar planejamento.')}finally{e.target.value=''}
+  };
+
+  renderPlanejamentos();
+})();
+<\/script>`;
+    const app=texts.join('');
+    document.open();document.write(app.replace('</body>',patch+'</body>'));document.close();
   }catch(e){
     document.getElementById('loading').innerHTML='<b>Não foi possível abrir o aplicativo.</b><br>Conecte à internet uma vez e atualize a página.';
     console.error(e)
