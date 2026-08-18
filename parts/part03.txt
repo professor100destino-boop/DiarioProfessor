@@ -1,4 +1,36 @@
-e organizada.</h2>
+an>Aulas e Conteúdos</span></button>
+        <button class="nav-item" data-view="planejamento"><span class="nav-ico">🗂️</span><span>Planejamento</span></button>
+        <button class="nav-item" data-view="relatorios"><span class="nav-ico">📊</span><span>Relatórios</span></button>
+        <button class="nav-item" data-view="config"><span class="nav-ico">⚙️</span><span>Configurações</span></button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="mini-card">
+          <b>Professor Control Offline PWA V2</b>
+          <small>Atividades separadas de provas, com cálculo automático das médias.</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="menuBtn" class="icon-btn menu-mobile" aria-label="Abrir menu">☰</button>
+          <div>
+            <h1 id="pageTitle">Início</h1>
+            <p id="todayText"></p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="primary ghost hidden" id="installBtn">Instalar</button>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active">
+        <div class="hero hero-dashboard">
+          <div class="hero-copy">
+            <span class="eyebrow">PAINEL DO PROFESSOR</span>
+            <h2>Uma rotina mais bonita, rápida e organizada.</h2>
             <p>Controle suas turmas, frequência, atividades, provas e conteúdos em um ambiente com cara de aplicativo de verdade, simples de usar e com navegação clara.</p>
             <div class="hero-actions">
               <button class="primary hero-action-btn hero-action-blue" data-go="frequencia">Chamada<span>Frequência da turma</span></button>
@@ -112,21 +144,4 @@ e organizada.</h2>
             <div id="freqList"></div>
           </div>
         </div>
-      </section>
-
-      <section id="view-atividades" class="view">
-        <div class="section-shell">
-          <div class="section-head"><div><h2>Controle de Atividades</h2><p>Cadastre as atividades e lance as notas separadamente das provas.</p></div></div>
-          <div class="panel">
-            <div class="toolbar wrap"><select id="atividadesTurma"></select><select id="atividadesBimestre"><option>1º Bimestre</option><option>2º Bimestre</option><option selected>3º Bimestre</option><option>4º Bimestre</option></select><button class="primary" id="novaAtividadeBtn">+ Nova atividade</button></div>
-            <div class="formula-box"><strong>Média das Atividades:</strong> soma das notas das atividades ÷ quantidade de atividades cadastradas. Essa média conta como <b>uma única nota</b> na média final.</div>
-            <div id="atividadesTable" class="table-wrap"></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="view-notas" class="view">
-        <div class="section-shell">
-          <div class="section-head"><div><h2>Provas e Média Final</h2><p>As provas ficam separadas. A média das atividades entra como uma única nota.</p></div></div>
-          <div class="panel">
-            <div class="toolbar wrap"><select id="notasTurma"></select><select id="notasBimestre"><option>1º Bimestre</option><option>2º Bimestre</option><optio
+      </s
