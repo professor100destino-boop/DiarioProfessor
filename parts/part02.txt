@@ -1,4 +1,8 @@
-width:8px}
+uch;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+.sidebar::-webkit-scrollbar{width:8px}
 .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:10px}
 
 .sidebar-toggle{
@@ -102,7 +106,7 @@ width:8px}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Professor Control">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 
 
 <style>
@@ -116,6 +120,53 @@ width:8px}
 .offline-status.loading{background:#eff6ff;color:#1d4ed8;border-color:#93c5fd}
 .offline-status.offline{background:#f0fdf4;color:#166534;border-color:#86efac}
 .offline-status.error{background:#fff7ed;color:#9a3412;border-color:#fdba74}
+</style>
+
+
+<style>
+/* === PLANEJAMENTO === */
+.lesson-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.lesson-btn{
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:16px;
+  padding:14px 10px;
+  text-align:center;
+  font-weight:800;
+  color:var(--primary-dark);
+  box-shadow:var(--shadow-soft);
+}
+.lesson-btn:hover,.lesson-btn.active{
+  background:var(--primary);
+  color:#fff;
+  border-color:var(--primary);
+}
+.lesson-detail{
+  margin-top:16px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:22px;
+  box-shadow:var(--shadow-soft);
+}
+.lesson-detail h3{margin:0 0 16px;font-size:24px}
+.lesson-field{margin:16px 0}
+.lesson-field h4{margin:0 0 7px;color:var(--primary-dark);font-size:15px}
+.lesson-field p{margin:0;line-height:1.65;white-space:pre-wrap}
+.plan-card{
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:18px;
+  padding:16px;
+  margin-top:12px;
+}
+.plan-card-row{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.plan-card small{color:var(--muted)}
 </style>
 
 </head>
@@ -163,35 +214,4 @@ width:8px}
         <button class="nav-item" data-view="frequencia"><span class="nav-ico">✅</span><span>Frequência</span></button>
         <button class="nav-item" data-view="atividades"><span class="nav-ico">📝</span><span>Atividades</span></button>
         <button class="nav-item" data-view="notas"><span class="nav-ico">📋</span><span>Provas e Notas</span></button>
-        <button class="nav-item" data-view="conteudos"><span class="nav-ico">📖</span><span>Aulas e Conteúdos</span></button>
-        <button class="nav-item" data-view="relatorios"><span class="nav-ico">📊</span><span>Relatórios</span></button>
-        <button class="nav-item" data-view="config"><span class="nav-ico">⚙️</span><span>Configurações</span></button>
-      </nav>
-
-      <div class="sidebar-foot">
-        <div class="mini-card">
-          <b>Professor Control Offline PWA V1</b>
-          <small>Atividades separadas de provas, com cálculo automático das médias.</small>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div class="topbar-left">
-          <button id="menuBtn" class="icon-btn menu-mobile" aria-label="Abrir menu">☰</button>
-          <div>
-            <h1 id="pageTitle">Início</h1>
-            <p id="todayText"></p>
-          </div>
-        </div>
-        <div class="topbar-actions">
-          <button class="primary ghost hidden" id="installBtn">Instalar</button>
-        </div>
-      </header>
-
-      <section id="view-dashboard" class="view active">
-        <div class="hero hero-dashboard">
-          <div class="hero-copy">
-            <span class="eyebrow">PAINEL DO PROFESSOR</span>
-            <h2>Uma rotina mais bonita, rápida 
+        <button class="nav-item" data-view="conteudos"><span class="nav-ico">📖</span><sp
