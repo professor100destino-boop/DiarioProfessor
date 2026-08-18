@@ -1,4 +1,27 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b2a55"><title>Professor Control</title><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"></head><body style="font-family:system-ui;background:#eef3fb;color:#152235;display:grid;place-items:center;min-height:100vh;margin:0"><div id="loading">Abrindo Professor Control…</div><script>
-(async()=>{try{const parts=['./parts/part00.txt','./parts/part01.txt','./parts/part02.txt','./parts/part03.txt','./parts/part04.txt','./parts/part05.txt','./parts/part06.txt','./parts/part07.txt','./parts/part08.txt','./parts/part09.txt','./parts/part10.txt'];const texts=await Promise.all(parts.map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.text()})));document.open();document.write(texts.join(''));document.close()}catch(e){document.getElementById('loading').innerHTML='<b>Não foi possível abrir o aplicativo.</b><br>Conecte à internet uma vez e atualize a página.';console.error(e)}})();
-</script></body></html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b2a55">
+<title>Professor Control</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body style="font-family:system-ui;background:#eef3fb;color:#152235;display:grid;place-items:center;min-height:100vh;margin:0">
+<div id="loading">Abrindo Professor Control…</div>
+<script>
+(async()=>{
+  try{
+    const parts=['./parts/part00.txt','./parts/part01.txt','./parts/part02.txt','./parts/part03.txt','./parts/part04.txt','./parts/part05.txt','./parts/part06.txt','./parts/part07.txt','./parts/part08.txt','./parts/part09.txt','./parts/part10.txt','./parts/part11.txt'];
+    const texts=await Promise.all(parts.map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.text()})));
+    document.open();document.write(texts.join(''));document.close();
+  }catch(e){
+    document.getElementById('loading').innerHTML='<b>Não foi possível abrir o aplicativo.</b><br>Conecte à internet uma vez e atualize a página.';
+    console.error(e)
+  }
+})();
+</script>
+</body>
+</html>
