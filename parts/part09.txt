@@ -1,191 +1,149 @@
-id===f.alunoId);return{Data:f.data,Aluno:a?.nome||'',Status:f.status}}));if(type==='notas'){const rows=[];for(const a of db.alunos){const t=db.turmas.find(x=>x.id===a.turmaId),c=calcAluno(a.id,a.turmaId,'3º Bimestre');rows.push({Escola:escolaNome(escolaDaTurma(t)),Turma:turmaNome(t),Aluno:a.nome,'Média Atividades':c.atividadeMedia===null?'':c.atividadeMedia.toFixed(2),'Média Final':c.media===null?'':c.media.toFixed(2)})}downloadCSV('notas.csv',rows)}});
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBtn').classList.add('hidden')}};
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-$('#todayText').textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
-renderAll();
+ividade 1':'Prova 1'}" required></label><label>Valor máximo<input id=mAvValor type=number min=.1 step=.1 value="10" required></label>`,()=>{if(!$('#mAvNome').value)return false;db.avaliacoes.push({id:id(),turmaId:tid,bimestre:bim,tipo,nome:$('#mAvNome').value,valor:Number($('#mAvValor').value||10)});save();return true})}
+$('#novaAtividadeBtn').onclick=()=>addAvaliacao('atividade');$('#novaProvaBtn').onclick=()=>addAvaliacao('prova');
 
-</script>
+function renderConteudos(){const tid=$('#conteudoTurma')?.value;const list=db.conteudos.filter(c=>c.turmaId===tid).sort((a,b)=>b.data.localeCompare(a.data));$('#conteudosList').innerHTML=list.length?list.map(c=>`<div class=list-row><span><b>${new Date(c.data+'T12:00').toLocaleDateString('pt-BR')} — ${esc(c.titulo)}</b><br><small class=muted>${esc(c.conteudo)}</small></span></div>`).join(''):'<span class=muted>Nenhuma aula registrada.</span>'}$('#conteudoTurma').onchange=renderConteudos;$('#novoConteudoBtn').onclick=()=>{const tid=$('#conteudoTurma').value;if(!tid)return toast('Crie uma turma');modal('Registrar aula',`<label>Data<input id=mCData type=date value="${todayISO()}"></label><label>Título<input id=mCTitulo placeholder="Confederação do Equador"></label><label>Conteúdo ministrado<textarea id=mCConteudo></textarea></label><label>Atividade realizada<textarea id=mCAtiv></textarea></label>`,()=>{if(!$('#mCTitulo').value)return false;db.conteudos.push({id:id(),turmaId:tid,data:$('#mCData').value,titulo:$('#mCTitulo').value,conteudo:$('#mCConteudo').value,atividade:$('#mCAtiv').value});save();return true})};
 
-<script>
-/* === FIX V4.1: MENU LATERAL MOBILE === */
-(function(){
-  function qs(s){ return document.querySelector(s); }
-  function qsa(s){ return Array.from(document.querySelectorAll(s)); }
+let planejamentoAtualId=null;
+let aulaAtualNumero=null;
 
-  const sidebar = qs('.sidebar');
-  if(!sidebar) return;
+function syncPlanTurmas(){
+  const eid=$('#planEscola')?.value||'';
+  options('#planTurma',null,eid);
+}
+if($('#planEscola')) $('#planEscola').onchange=()=>{syncPlanTurmas();renderPlanejamentos()};
+if($('#planTurma')) $('#planTurma').onchange=renderPlanejamentos;
 
-  let toggle = qs('.sidebar-toggle');
-  if(!toggle){
-    toggle = document.createElement('button');
-    toggle.className = 'sidebar-toggle';
-    toggle.setAttribute('aria-label','Abrir menu');
-    toggle.innerHTML = '☰';
-    document.body.appendChild(toggle);
-  }
+function docxParagraphsFromXml(xmlText){
+  const doc=new DOMParser().parseFromString(xmlText,'application/xml');
+  const ps=[...doc.getElementsByTagNameNS('*','p')];
+  return ps.map(p=>{
+    const texts=[...p.getElementsByTagNameNS('*','t')].map(t=>t.textContent||'');
+    return texts.join('').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+  }).filter(Boolean);
+}
 
-  const overlay = qs('#sidebarOverlay');
+function splitPlanejamentoEmAulas(paragraphs){
+  const aulas=[];
+  let atual=null;
+  let campo='raw';
 
-  function isMobile(){ return window.matchMedia('(max-width: 900px)').matches; }
+  const setCampo=(p)=>{
+    const n=p.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+    if(/^habilidades?$/.test(n)) return 'habilidade';
+    if(/^objetivos? de conhecimentos?\/conteudos?$/.test(n) || /^objetivos?\/conteudos?$/.test(n) || /^objetivos?$/.test(n)) return 'objetivos';
+    if(/^metodologia$/.test(n)) return 'metodologia';
+    if(/^avaliacao$/.test(n)) return 'avaliacao';
+    return null;
+  };
 
-  function openMenu(){
-    if(!isMobile()) return;
-    sidebar.classList.add('open');
-    overlay && overlay.classList.add('show');
-    document.body.classList.add('menu-open');
-    toggle.innerHTML = '✕';
-    toggle.setAttribute('aria-label','Fechar menu');
-  }
-
-  function closeMenu(){
-    sidebar.classList.remove('open');
-    overlay && overlay.classList.remove('show');
-    document.body.classList.remove('menu-open');
-    toggle.innerHTML = '☰';
-    toggle.setAttribute('aria-label','Abrir menu');
-  }
-
-  toggle.addEventListener('click', function(e){
-    e.preventDefault();
-    e.stopPropagation();
-    sidebar.classList.contains('open') ? closeMenu() : openMenu();
-  });
-
-  overlay && overlay.addEventListener('click', closeMenu);
-
-  qsa('.sidebar .nav-item, .sidebar [data-view], .sidebar a').forEach(function(el){
-    el.addEventListener('click', function(){
-      if(isMobile()) setTimeout(closeMenu, 60);
-    });
-  });
-
-  window.addEventListener('resize', function(){
-    if(!isMobile()){
-      closeMenu();
-      sidebar.classList.remove('open');
+  for(const p0 of paragraphs){
+    const p=p0.trim();
+    const m=p.match(/^AULA\s+(\d+)\s*[–—-]\s*(.+)$/i) || p.match(/^AULA\s+(\d+)\s*[:\-–—]?\s*(.*)$/i);
+    if(m){
+      if(atual) aulas.push(atual);
+      atual={
+        numero:Number(m[1]),
+        titulo:(m[2]||'').trim() || `Aula ${m[1]}`,
+        habilidade:'',
+        objetivos:'',
+        metodologia:'',
+        avaliacao:'',
+        raw:''
+      };
+      campo='raw';
+      continue;
     }
-  });
+    if(!atual) continue;
 
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') closeMenu();
-  });
-
-  // Garantir rolagem interna mesmo quando o dedo inicia sobre um item do menu.
-  sidebar.addEventListener('touchmove', function(e){
-    e.stopPropagation();
-  }, {passive:true});
-
-  closeMenu();
-  const hist=$('#historicoBimestres');
-  if(hist){
-    const rows=alunos.filter(a=>db.mediasBimestrais?.[a.id] && (
-      db.mediasBimestrais[a.id]['1º Bimestre']!==undefined ||
-      db.mediasBimestrais[a.id]['2º Bimestre']!==undefined
-    ));
-    hist.innerHTML=rows.length?`<table><thead><tr><th>Aluno</th><th>1º Bimestre</th><th>2º Bimestre</th></tr></thead><tbody>${
-      rows.map(a=>{
-        const mb=db.mediasBimestrais[a.id]||{};
-        const m1=mb['1º Bimestre'];
-        const m2=mb['2º Bimestre'];
-        return `<tr><td><b>${esc(a.nome)}</b></td><td>${m1===undefined?'—':Number(m1).toFixed(1)}</td><td>${m2===undefined?'—':Number(m2).toFixed(1)}</td></tr>`;
-      }).join('')
-    }</tbody></table>`:'<p class=muted>Nenhuma média de bimestre anterior importada para esta turma.</p>';
-  }
-})();
-</script>
-
-
-<script>
-/* === V6.4 Segurança === */
-const SECURITY_KEY='professor_control_security_v1';
-
-function securityLoad(){
-  try{return JSON.parse(localStorage.getItem(SECURITY_KEY)||'{}')}catch{return{}}
-}
-function simpleHash(str){
-  // Hash local simples para não guardar a senha em texto puro.
-  // Não substitui autenticação de servidor, mas protege o uso local.
-  let h1=0x811c9dc5;
-  for(let i=0;i<str.length;i++){
-    h1 ^= str.charCodeAt(i);
-    h1 = Math.imul(h1,0x01000193);
-  }
-  return (h1>>>0).toString(16);
-}
-function securityCheckPassword(pass){
-  const s=securityLoad();
-  return !!s.passwordHash && s.passwordHash===simpleHash(pass);
-}
-function securitySetPassword(pass){
-  localStorage.setItem(SECURITY_KEY,JSON.stringify({passwordHash:simpleHash(pass)}));
-}
-
-function initSecurity(){
-  const lock=document.getElementById('authLock');
-  const title=document.getElementById('authTitle');
-  const text=document.getElementById('authText');
-  const pass=document.getElementById('authPass');
-  const pass2=document.getElementById('authPass2');
-  const btn=document.getElementById('authBtn');
-  const err=document.getElementById('authError');
-  if(!lock||!btn)return;
-
-  const sec=securityLoad();
-  const first=!sec.passwordHash;
-
-  if(first){
-    title.textContent='Criar senha de acesso';
-    text.textContent='Este é o primeiro acesso. Crie uma senha para proteger seus dados.';
-    pass.placeholder='Crie uma senha';
-    pass2.classList.remove('hidden');
-    btn.textContent='Salvar senha e entrar';
-  }else{
-    title.textContent='Professor Control';
-    text.textContent='Digite sua senha para acessar o sistema.';
-    pass2.classList.add('hidden');
-    btn.textContent='Entrar';
-  }
-
-  function submit(){
-    err.textContent='';
-    const p=pass.value;
-    if(first){
-      if(p.length<4){err.textContent='A senha deve ter pelo menos 4 caracteres.';return}
-      if(p!==pass2.value){err.textContent='As senhas não conferem.';return}
-      securitySetPassword(p);
-      lock.classList.add('hidden');
-      pass.value=''; pass2.value='';
-    }else{
-      if(!securityCheckPassword(p)){err.textContent='Senha incorreta.';return}
-      lock.classList.add('hidden');
-      pass.value='';
+    const novoCampo=setCampo(p);
+    if(novoCampo){
+      campo=novoCampo;
+      continue;
     }
+    atual[campo]=(atual[campo] ? atual[campo]+'\n' : '') + p;
   }
+  if(atual) aulas.push(atual);
 
-  btn.onclick=submit;
-  pass.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
-  pass2.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+  return aulas
+    .filter(a=>Number.isFinite(a.numero))
+    .sort((a,b)=>a.numero-b.numero);
 }
 
-function confirmarExclusaoComSenha(tipo,nome){
-  const aviso=`ATENÇÃO!\n\nVocê está prestes a excluir ${tipo}: ${nome}.\nEsta ação pode remover dados vinculados e não poderá ser desfeita.\n\nDeseja continuar?`;
-  if(!confirm(aviso)) return false;
-
-  const senha=prompt(`Digite a senha do Professor Control para confirmar a exclusão de ${tipo}:`);
-  if(senha===null) return false;
-
-  if(!securityCheckPassword(senha)){
-    alert('Senha incorreta. A exclusão foi cancelada.');
-    return false;
-  }
-  return true;
+async function lerPlanejamentoDocx(file){
+  if(typeof JSZip==='undefined') throw new Error('O leitor de DOCX ainda não terminou de carregar. Aguarde alguns segundos e tente novamente.');
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const docFile=zip.file('word/document.xml');
+  if(!docFile) throw new Error('Este arquivo não parece ser um DOCX válido.');
+  const xml=await docFile.async('text');
+  const paragraphs=docxParagraphsFromXml(xml);
+  const aulas=splitPlanejamentoEmAulas(paragraphs);
+  if(!aulas.length) throw new Error('Não encontrei aulas. Use títulos como “AULA 1 – Título da aula”.');
+  return aulas;
 }
 
-document.addEventListener('DOMContentLoaded',initSecurity);
-</script>
+function renderPlanejamentos(){
+  const list=$('#planejamentosList');
+  if(!list)return;
 
+  const tid=$('#planTurma')?.value||'';
+  const plans=db.planejamentos.filter(p=>!tid || p.turmaId===tid);
 
-<script>
-document.addEventListener('DOMContentLoaded',()=>{
-  const b=document.getElementById('alterarSenhaBtn');
-  if(
+  if(!plans.length){
+    list.innerHTML='<p class=muted style="margin-top:18px">Nenhum planejamento importado para esta turma.</p>';
+    $('#planAulasArea')?.classList.add('hidden');
+    return;
+  }
+
+  list.innerHTML=plans.map(p=>{
+    const t=db.turmas.find(x=>x.id===p.turmaId);
+    return `<div class="plan-card">
+      <div class="plan-card-row">
+        <div>
+          <b>${esc(p.nome||p.arquivo||'Planejamento')}</b><br>
+          <small>${esc(turmaNomeCompleto(t))} • ${p.aulas.length} aulas</small>
+        </div>
+        <div class="toolbar">
+          <button class="primary ghost" onclick="abrirPlanejamento('${p.id}')">Abrir aulas</button>
+          <button class="danger" onclick="excluirPlanejamento('${p.id}')">Excluir</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(planejamentoAtualId && plans.some(p=>p.id===planejamentoAtualId)){
+    abrirPlanejamento(planejamentoAtualId,aulaAtualNumero,false);
+  }
+}
+
+window.abrirPlanejamento=function(pid,num=null,scroll=true){
+  const p=db.planejamentos.find(x=>x.id===pid); if(!p)return;
+  planejamentoAtualId=pid;
+  $('#planAulasArea').classList.remove('hidden');
+  $('#planTituloAtual').textContent=p.nome||p.arquivo||'Planejamento';
+  const t=db.turmas.find(x=>x.id===p.turmaId);
+  $('#planMetaAtual').textContent=`${turmaNomeCompleto(t)} • ${p.aulas.length} aulas`;
+
+  $('#planLessonGrid').innerHTML=p.aulas.map(a=>
+    `<button class="lesson-btn ${a.numero===num?'active':''}" onclick="abrirAulaPlanejamento('${pid}',${a.numero})">Aula ${a.numero}</button>`
+  ).join('');
+
+  if(num) abrirAulaPlanejamento(pid,num,scroll);
+  else $('#planLessonDetail').classList.add('hidden');
+
+  if(scroll) $('#planAulasArea').scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+window.abrirAulaPlanejamento=function(pid,numero,scroll=true){
+  const p=db.planejamentos.find(x=>x.id===pid); if(!p)return;
+  const a=p.aulas.find(x=>x.numero===numero); if(!a)return;
+  planejamentoAtualId=pid; aulaAtualNumero=numero;
+
+  $$('#planLessonGrid .lesson-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===`Aula ${numero}`));
+
+  const detalhe=$('#planLessonDetail');
+  detalhe.classList.remove('hidden');
+  detalhe.innerHTML=`
+    <h3>AULA ${a.numero} – ${esc(a.titulo)}</h3>
+    ${a.habilidade?`<div class="lesson-field"><h4>Habilidade${a.habilidade.includes('\n')?'s':''}</h4><p>${esc(a.habilidade)}</p></div>`:''}
+    ${a.objetivos?`<div class="lesson-field"><h4>Objetivos de conhecimentos/conteúdos</h4><p>${esc(a.objetivos)}</p></div>`:''}
+    ${a.metodologia?`<div class="lesson-field"><h4>Metodologia</h4><p>
