@@ -41,7 +41,7 @@ ection>
           <div class="section-head">
             <div>
               <h2>Planejamento</h2>
-              <p>Importe um planejamento em DOCX e acesse cada aula diretamente pelo número.</p>
+              <p>Selecione escola, turma e bimestre; importe um planejamento em DOCX e acesse cada aula diretamente pelo número.</p>
             </div>
           </div>
 
@@ -49,6 +49,12 @@ ection>
             <div class="toolbar wrap">
               <select id="planEscola" aria-label="Escola"></select>
               <select id="planTurma" aria-label="Turma"></select>
+              <select id="planBimestre" aria-label="Bimestre">
+                <option value="1º Bimestre">1º Bimestre</option>
+                <option value="2º Bimestre">2º Bimestre</option>
+                <option value="3º Bimestre" selected>3º Bimestre</option>
+                <option value="4º Bimestre">4º Bimestre</option>
+              </select>
               <label class="primary file-label">
                 Importar planejamento DOCX
                 <input type="file" id="planDocxFile" accept=".docx" hidden>
