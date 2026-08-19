@@ -50,7 +50,7 @@
     a.download=file.name;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-    alert('Backup completo criado. Não apague o Prof Control antigo até confirmar que os dados foram restaurados no Docência Fácil.');
+    alert('Backup salvo. Agora abra o Docência Fácil → Configurações → Restaurar backup e escolha o arquivo backup-professor-control na pasta Downloads. Não apague o Prof Control antigo antes de conferir os dados.');
   }
 
   async function shareBackup(){
@@ -64,7 +64,6 @@
       if(e?.name==='AbortError')return;
       console.error(e);
     }
-    alert('O compartilhamento direto não está disponível neste navegador. Vou salvar o arquivo de backup para você.');
     exportBackup();
   }
 
@@ -105,10 +104,18 @@
     }
   }
 
+  function directShareAvailable(){
+    try{
+      const f=makeBackupFile();
+      return !!(navigator.share && navigator.canShare && navigator.canShare({files:[f]}));
+    }catch(e){return false;}
+  }
+
   function inject(){
     if(document.getElementById('backupProfessorControl'))return;
     const config=document.querySelector('#view-config .panel') || document.querySelector('#view-config');
     if(!config)return;
+    const canShare=directShareAvailable();
     const box=document.createElement('div');
     box.id='backupProfessorControl';
     box.style.cssText='margin-top:22px;padding-top:20px;border-top:1px solid #dce5f1';
@@ -117,7 +124,7 @@
       <p class="muted" style="margin:0 0 14px">Use antes de trocar de aparelho, reinstalar ou migrar para o APK Docência Fácil.</p>
       <div class="button-row" style="display:flex;gap:10px;flex-wrap:wrap">
         <button type="button" class="primary" id="pcExportBackup">⬇ Fazer backup completo</button>
-        <button type="button" class="primary" id="pcShareBackup" style="background:#168f4d">📤 Enviar para Docência Fácil</button>
+        <button type="button" class="primary" id="pcShareBackup" style="background:#168f4d">${canShare?'📤 Enviar para Docência Fácil':'⬇ Salvar backup para Docência Fácil'}</button>
         <label class="primary ghost" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:12px 16px;border-radius:12px">⬆ Restaurar backup
           <input type="file" id="pcImportBackup" accept="application/json,.json" hidden>
         </label>
@@ -125,7 +132,7 @@
       <div class="notice" style="margin-top:12px"><b>Importante:</b> o backup inclui os dados armazenados no Professor Control deste aparelho. Só desinstale o aplicativo antigo depois de conferir a restauração.</div>`;
     config.appendChild(box);
     document.getElementById('pcExportBackup').onclick=exportBackup;
-    document.getElementById('pcShareBackup').onclick=shareBackup;
+    document.getElementById('pcShareBackup').onclick=canShare?shareBackup:exportBackup;
     document.getElementById('pcImportBackup').onchange=e=>{const f=e.target.files?.[0];importBackup(f);e.target.value='';};
   }
 
