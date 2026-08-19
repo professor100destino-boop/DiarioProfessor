@@ -5,18 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Professor Control - Atualização</title>
 <style>
-body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}.box{background:#fff;padding:28px;border-radius:20px;max-width:560px;width:100%;text-align:center;box-shadow:0 10px 35px #0002}h2{margin-top:0;font-size:30px}.sub{color:#64748b;margin-bottom:24px}.btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:17px 16px;margin:12px 0;font-size:19px;font-weight:800;text-decoration:none;cursor:pointer}.blue{background:#2563eb;color:#fff}.green{background:#15803d;color:#fff}.gray{background:#e8eef7;color:#17345f}.ok{color:#15803d;font-weight:700}.err{color:#b91c1c;font-weight:700}.ver{margin-top:20px;color:#64748b;font-size:14px}
+body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}.box{background:#fff;padding:28px;border-radius:20px;max-width:560px;width:100%;text-align:center;box-shadow:0 10px 35px #0002}h2{margin-top:0;font-size:30px}.sub{color:#64748b;margin-bottom:24px}.btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:17px 16px;margin:12px 0;font-size:19px;font-weight:800;text-decoration:none;cursor:pointer}.blue{background:#2563eb;color:#fff}.green{background:#15803d;color:#fff}.gray{background:#e8eef7;color:#17345f}.warn{background:#fff7d6;color:#7a5600;padding:14px;border-radius:12px;text-align:left;line-height:1.45;margin:16px 0}.ok{color:#15803d;font-weight:700}.err{color:#b91c1c;font-weight:700}.ver{margin-top:20px;color:#64748b;font-size:14px}
 </style>
 </head>
 <body>
 <div class="box">
 <h2>Professor Control</h2>
-<p class="sub">Atualização e instalação</p>
+<p class="sub">Atualização e migração segura</p>
+<div class="warn"><b>Antes de apagar o Prof Control antigo:</b> abra o aplicativo antigo, atualize, entre em <b>Configurações → Backup e restauração</b> e faça o backup dos seus dados.</div>
 <button class="btn blue" onclick="atualizar()">🔄 Atualizar Professor Control</button>
-<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=103" download="Docencia-Facil-SIAP-v1.0.3.apk">⬇ Baixar APK 1.0.3</a>
+<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=104" download="Docencia-Facil-SIAP-v1.0.4.apk">⬇ Baixar Docência Fácil 1.0.4</a>
 <a class="btn gray" href="./">Abrir Professor Control</a>
 <p id="msg"></p>
-<div class="ver">APK integrado: Docência Fácil + SIAP Fácil 1.0.3</div>
+<div class="ver">APK integrado: Docência Fácil + SIAP Fácil 1.0.4 • com ícone próprio e migração de dados</div>
 </div>
 <script>
 async function atualizar(){
