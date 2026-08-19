@@ -7,24 +7,40 @@
     btn.id='updateAppBtn';
     btn.className='primary hero-action-btn hero-action-update';
     btn.innerHTML='Atualizar aplicativo<span>Buscar a versão mais recente</span>';
+
     btn.addEventListener('click',async()=>{
-      if(!navigator.onLine){alert('Conecte à internet para atualizar o aplicativo.');return;}
+      if(!navigator.onLine){
+        alert('Conecte à internet para atualizar o aplicativo.');
+        return;
+      }
+
       const original=btn.innerHTML;
       btn.disabled=true;
-      btn.innerHTML='Atualizando...<span>Aguarde alguns segundos</span>';
+      btn.innerHTML='Atualizando...<span>Fechando a versão antiga</span>';
+
       try{
+        sessionStorage.setItem('professor_control_session_ok','1');
+
         if('serviceWorker' in navigator){
           const regs=await navigator.serviceWorker.getRegistrations();
-          for(const reg of regs){try{await reg.update();}catch(e){}}
+          for(const reg of regs){
+            try{ await reg.unregister(); }catch(e){}
+          }
         }
+
         if('caches' in window){
           const keys=await caches.keys();
-          await Promise.all(keys.filter(k=>k.startsWith('professor-control-')).map(k=>caches.delete(k)));
+          await Promise.all(
+            keys
+              .filter(k=>k.startsWith('professor-control-'))
+              .map(k=>caches.delete(k))
+          );
         }
-        sessionStorage.setItem('professor_control_session_ok','1');
-        const url=new URL(location.href);
-        url.searchParams.set('atualiza',Date.now().toString());
-        location.replace(url.toString());
+
+        const destino=new URL('./atualizar.html',location.href);
+        destino.searchParams.set('pwa','1');
+        destino.searchParams.set('ts',Date.now().toString());
+        location.replace(destino.toString());
       }catch(err){
         console.error(err);
         btn.disabled=false;
@@ -32,6 +48,7 @@
         alert('Não foi possível concluir a atualização. Verifique a internet e tente novamente.');
       }
     });
+
     actions.appendChild(btn);
 
     const style=document.createElement('style');
@@ -43,6 +60,7 @@
     `;
     document.head.appendChild(style);
   }
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',addUpdateButton);
   else addUpdateButton();
 })();
