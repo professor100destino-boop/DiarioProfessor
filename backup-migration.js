@@ -27,22 +27,45 @@
     }catch(e){ return {}; }
   }
 
-  function exportBackup(){
-    const payload={
+  function buildPayload(){
+    return {
       app:'Professor Control / Docência Fácil',
       format:1,
       createdAt:new Date().toISOString(),
       localStorage:allLocalStorage(),
       summary:dataSummary()
     };
-    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
+  }
+
+  function makeBackupFile(){
+    const payload=buildPayload();
     const date=new Date().toISOString().slice(0,10);
-    a.download=`backup-professor-control-${date}.json`;
+    return new File([JSON.stringify(payload,null,2)],`backup-professor-control-${date}.json`,{type:'application/json'});
+  }
+
+  function exportBackup(){
+    const file=makeBackupFile();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(file);
+    a.download=file.name;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-    alert('Backup completo criado. Guarde este arquivo. Ele pode ser restaurado no Docência Fácil.');
+    alert('Backup completo criado. Não apague o Prof Control antigo até confirmar que os dados foram restaurados no Docência Fácil.');
+  }
+
+  async function shareBackup(){
+    const file=makeBackupFile();
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+        await navigator.share({title:'Backup Professor Control',text:'Enviar backup para o Docência Fácil',files:[file]});
+        return;
+      }
+    }catch(e){
+      if(e?.name==='AbortError')return;
+      console.error(e);
+    }
+    alert('O compartilhamento direto não está disponível neste navegador. Vou salvar o arquivo de backup para você.');
+    exportBackup();
   }
 
   async function importBackup(file){
@@ -94,16 +117,19 @@
       <p class="muted" style="margin:0 0 14px">Use antes de trocar de aparelho, reinstalar ou migrar para o APK Docência Fácil.</p>
       <div class="button-row" style="display:flex;gap:10px;flex-wrap:wrap">
         <button type="button" class="primary" id="pcExportBackup">⬇ Fazer backup completo</button>
+        <button type="button" class="primary" id="pcShareBackup" style="background:#168f4d">📤 Enviar para Docência Fácil</button>
         <label class="primary ghost" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:12px 16px;border-radius:12px">⬆ Restaurar backup
           <input type="file" id="pcImportBackup" accept="application/json,.json" hidden>
         </label>
       </div>
-      <div class="notice" style="margin-top:12px"><b>Importante:</b> o backup inclui todos os dados armazenados no Professor Control deste aparelho.</div>`;
+      <div class="notice" style="margin-top:12px"><b>Importante:</b> o backup inclui os dados armazenados no Professor Control deste aparelho. Só desinstale o aplicativo antigo depois de conferir a restauração.</div>`;
     config.appendChild(box);
     document.getElementById('pcExportBackup').onclick=exportBackup;
+    document.getElementById('pcShareBackup').onclick=shareBackup;
     document.getElementById('pcImportBackup').onchange=e=>{const f=e.target.files?.[0];importBackup(f);e.target.value='';};
   }
 
   window.professorControlExportBackup=exportBackup;
+  window.professorControlShareBackup=shareBackup;
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject);else setTimeout(inject,0);
 })();
