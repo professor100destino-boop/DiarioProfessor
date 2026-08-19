@@ -21,6 +21,7 @@ import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.net.http.SslError;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -52,12 +53,14 @@ public class MainActivity extends Activity {
     private static final String ESCOLA_URL="https://siap.educacao.go.gov.br/DefinirEscola.aspx";
     private static final String PREFS="siap_secure_prefs";
     private static final String KEY_ALIAS="siap_credentials_key";
+    private static final int FILE_CHOOSER_REQUEST=5105;
 
     private SharedPreferences prefs;
     private WebView uiWeb,siapWeb;
     private LinearLayout siteTop;
     private TextView siteTitle,siteSub;
     private Button siteOrient;
+    private ValueCallback<Uri[]> filePathCallback;
     private String shellTarget="auto";
     private boolean loginSubmitted=false;
     private boolean captchaAfterFailure=false;
@@ -92,7 +95,33 @@ public class MainActivity extends Activity {
         uiWeb.addJavascriptInterface(new UiBridge(),"Android");
         siapWeb.addJavascriptInterface(new SiapBridge(),"SiapNative");
 
-        uiWeb.setWebChromeClient(new WebChromeClient());
+        uiWeb.setWebChromeClient(new WebChromeClient(){
+            @Override public boolean onShowFileChooser(WebView webView,ValueCallback<Uri[]> callback,FileChooserParams params){
+                if(filePathCallback!=null) filePathCallback.onReceiveValue(null);
+                filePathCallback=callback;
+                try{
+                    Intent intent=params!=null?params.createIntent():null;
+                    if(intent==null){
+                        intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("application/json");
+                    }
+                    startActivityForResult(intent,FILE_CHOOSER_REQUEST);
+                    return true;
+                }catch(Exception e){
+                    try{
+                        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("*/*");
+                        startActivityForResult(intent,FILE_CHOOSER_REQUEST);
+                        return true;
+                    }catch(Exception ignored){
+                        if(filePathCallback!=null){filePathCallback.onReceiveValue(null);filePathCallback=null;}
+                        return false;
+                    }
+                }
+            }
+        });
         uiWeb.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest r){
                 Uri u=r.getUrl(); String host=u.getHost()==null?"":u.getHost().toLowerCase();
@@ -155,6 +184,18 @@ public class MainActivity extends Activity {
         CookieManager cm=CookieManager.getInstance();
         cm.setAcceptCookie(true); cm.setAcceptThirdPartyCookies(siapWeb,true);
         showProfessor();
+    }
+
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        if(requestCode==FILE_CHOOSER_REQUEST){
+            if(filePathCallback!=null){
+                Uri[] results=WebChromeClient.FileChooserParams.parseResult(resultCode,data);
+                filePathCallback.onReceiveValue(results);
+                filePathCallback=null;
+            }
+            return;
+        }
+        super.onActivityResult(requestCode,resultCode,data);
     }
 
     private void configureWeb(WebView w,boolean ui){
