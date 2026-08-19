@@ -12,3 +12,5 @@ android {
         versionName '1.0.5'
     }
 }
+
+// Recompilação limpa solicitada em 2026-08-19 para publicar a versão 1.0.5.
