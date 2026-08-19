@@ -2,16 +2,20 @@
   const SIAP_HOME='https://siap.educacao.go.gov.br/';
   const SIAP_PLANEJAMENTO='https://siap.educacao.go.gov.br/AcompanhamentoPlanejamentoProfessorListagem.aspx';
   const $=s=>document.querySelector(s);
+  const inAndroid=()=>{try{return !!(window.Android&&typeof window.Android.openSiap==='function')}catch(e){return false}};
 
   function openSiap(url=SIAP_HOME){
     try{
-      if(window.Android&&typeof window.Android.openSiap==='function'){
+      if(inAndroid()){
         if(url===SIAP_PLANEJAMENTO&&typeof window.Android.openPlanning==='function') window.Android.openPlanning();
         else window.Android.openSiap();
         return;
       }
     }catch(e){}
-    location.href=url;
+    if(typeof go==='function'){
+      go('siap');
+      const p=$('#pageTitle'); if(p)p.textContent='SIAP Fácil';
+    } else location.href=url;
   }
 
   function inject(){
@@ -26,7 +30,7 @@
             <button class="primary" id="abrirSiapIntegrado" style="min-height:86px;font-size:18px">Abrir SIAP Fácil<br><small>Login, frequência, conteúdos e troca de escola</small></button>
             <button class="primary ghost" id="abrirPlanejamentoSiap" style="min-height:86px;font-size:18px">Planejamento SIAP<br><small>Acesso direto ao planejamento</small></button>
           </div>
-          <div class="notice" style="margin-top:16px"><b>No APK único:</b> o SIAP abre dentro do próprio aplicativo, mantendo cookies e sessão. Use a barra superior para voltar ao Docência Fácil, recarregar, alterar zoom e orientação.</div>
+          <div class="notice" style="margin-top:16px"><b>No APK:</b> ao tocar em SIAP Fácil no menu, o aplicativo abre diretamente o SIAP Fácil original, com Configurações, Painel, Código de segurança e menu próprio.</div>
         </div>
       </div>`;
       config?.parentNode?.insertBefore(sec,config);
@@ -41,10 +45,15 @@
       btn.innerHTML='<span class="nav-ico">🏫</span><span>SIAP Fácil</span>';
       const cfg=document.querySelector('.nav-item[data-view="config"]');
       if(cfg&&cfg.parentNode===nav) nav.insertBefore(btn,cfg); else nav?.appendChild(btn);
-      btn.addEventListener('click',()=>{
+      btn.addEventListener('click',(ev)=>{
+        if(inAndroid()){
+          ev.preventDefault(); ev.stopPropagation();
+          window.Android.openSiap();
+          return;
+        }
         if(typeof go==='function')go('siap');
         const p=$('#pageTitle'); if(p)p.textContent='SIAP Fácil';
-      });
+      },true);
     }
 
     if(!$('#siapHomeQuick')){
@@ -53,8 +62,11 @@
         const b=document.createElement('button');
         b.id='siapHomeQuick'; b.className='primary hero-action-btn';
         b.style.background='linear-gradient(135deg,#0f766e,#0d9488)';
-        b.innerHTML='SIAP Fácil<span>Abrir portal integrado</span>';
-        b.onclick=()=>{if(typeof go==='function')go('siap');const p=$('#pageTitle');if(p)p.textContent='SIAP Fácil'};
+        b.innerHTML='SIAP Fácil<span>Abrir SIAP Fácil original</span>';
+        b.onclick=()=>{
+          if(inAndroid()) window.Android.openSiap();
+          else {if(typeof go==='function')go('siap');const p=$('#pageTitle');if(p)p.textContent='SIAP Fácil'}
+        };
         actions.appendChild(b);
       }
     }
