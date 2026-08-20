@@ -37,34 +37,72 @@
     };
   }
 
-  function makeBackupFile(){
+  function backupData(){
     const payload=buildPayload();
     const date=new Date().toISOString().slice(0,10);
-    return new File([JSON.stringify(payload,null,2)],`backup-professor-control-${date}.json`,{type:'application/json'});
+    const filename=`backup-professor-control-${date}.json`;
+    const text=JSON.stringify(payload,null,2);
+    const file=new File([text],filename,{type:'application/json'});
+    return {payload,text,file,filename};
   }
 
-  function exportBackup(){
-    const file=makeBackupFile();
+  function exportBackupRapido(){
+    const {file}=backupData();
+    const url=URL.createObjectURL(file);
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(file);
+    a.href=url;
     a.download=file.name;
     document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-    alert('Backup salvo. Agora abra o Docência Fácil → Configurações → Restaurar backup e escolha o arquivo backup-professor-control na pasta Downloads. Não apague o Prof Control antigo antes de conferir os dados.');
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    alert('Backup criado. Se o navegador não perguntou onde salvar, use o botão “Escolher local / nuvem”.');
   }
 
-  async function shareBackup(){
-    const file=makeBackupFile();
+  async function escolherLocalOuNuvem(){
+    const {text,file,filename}=backupData();
+
+    // APK Docência Fácil: usa o seletor nativo do Android (Downloads, Drive, OneDrive etc.).
     try{
-      if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
-        await navigator.share({title:'Backup Professor Control',text:'Enviar backup para o Docência Fácil',files:[file]});
+      if(window.Android && typeof window.Android.chooseBackupLocation==='function'){
+        window.Android.chooseBackupLocation(text,filename);
+        return;
+      }
+    }catch(e){console.error(e)}
+
+    // Navegadores com File System Access API.
+    if(typeof window.showSaveFilePicker==='function'){
+      try{
+        const handle=await window.showSaveFilePicker({
+          suggestedName:filename,
+          types:[{description:'Backup do Professor Control',accept:{'application/json':['.json']}}]
+        });
+        const writable=await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        alert('Backup salvo no local escolhido.');
+        return;
+      }catch(e){
+        if(e?.name==='AbortError')return;
+        console.error(e);
+      }
+    }
+
+    // Android/iOS: abre o menu de compartilhamento; Drive/OneDrive podem aparecer como destino.
+    try{
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        await navigator.share({
+          title:'Backup Professor Control',
+          text:'Salvar backup do Professor Control / Docência Fácil',
+          files:[file]
+        });
         return;
       }
     }catch(e){
       if(e?.name==='AbortError')return;
       console.error(e);
     }
-    exportBackup();
+
+    // Último recurso: download normal.
+    exportBackupRapido();
   }
 
   async function importBackup(file){
@@ -104,39 +142,31 @@
     }
   }
 
-  function directShareAvailable(){
-    try{
-      const f=makeBackupFile();
-      return !!(navigator.share && navigator.canShare && navigator.canShare({files:[f]}));
-    }catch(e){return false;}
-  }
-
   function inject(){
     if(document.getElementById('backupProfessorControl'))return;
     const config=document.querySelector('#view-config .panel') || document.querySelector('#view-config');
     if(!config)return;
-    const canShare=directShareAvailable();
     const box=document.createElement('div');
     box.id='backupProfessorControl';
     box.style.cssText='margin-top:22px;padding-top:20px;border-top:1px solid #dce5f1';
     box.innerHTML=`
       <h3 style="margin:0 0 8px">Backup e restauração</h3>
-      <p class="muted" style="margin:0 0 14px">Use antes de trocar de aparelho, reinstalar ou migrar para o APK Docência Fácil.</p>
+      <p class="muted" style="margin:0 0 14px">Faça uma cópia completa dos dados e escolha onde deseja guardar.</p>
       <div class="button-row" style="display:flex;gap:10px;flex-wrap:wrap">
-        <button type="button" class="primary" id="pcExportBackup">⬇ Fazer backup completo</button>
-        <button type="button" class="primary" id="pcShareBackup" style="background:#168f4d">${canShare?'📤 Enviar para Docência Fácil':'⬇ Salvar backup para Docência Fácil'}</button>
+        <button type="button" class="primary" id="pcChooseBackup" style="background:#168f4d">☁️ Escolher local / nuvem</button>
+        <button type="button" class="primary ghost" id="pcExportBackup">⬇ Backup rápido</button>
         <label class="primary ghost" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:12px 16px;border-radius:12px">⬆ Restaurar backup
           <input type="file" id="pcImportBackup" accept="application/json,.json" hidden>
         </label>
       </div>
-      <div class="notice" style="margin-top:12px"><b>Importante:</b> o backup inclui os dados armazenados no Professor Control deste aparelho. Só desinstale o aplicativo antigo depois de conferir a restauração.</div>`;
+      <div class="notice" style="margin-top:12px"><b>Escolher local / nuvem:</b> no APK abre o seletor do Android, permitindo escolher armazenamento interno, Google Drive, OneDrive ou outros provedores instalados. O backup inclui todos os dados do Professor Control deste aparelho.</div>`;
     config.appendChild(box);
-    document.getElementById('pcExportBackup').onclick=exportBackup;
-    document.getElementById('pcShareBackup').onclick=canShare?shareBackup:exportBackup;
+    document.getElementById('pcChooseBackup').onclick=escolherLocalOuNuvem;
+    document.getElementById('pcExportBackup').onclick=exportBackupRapido;
     document.getElementById('pcImportBackup').onchange=e=>{const f=e.target.files?.[0];importBackup(f);e.target.value='';};
   }
 
-  window.professorControlExportBackup=exportBackup;
-  window.professorControlShareBackup=shareBackup;
+  window.professorControlExportBackup=exportBackupRapido;
+  window.professorControlChooseBackup=escolherLocalOuNuvem;
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject);else setTimeout(inject,0);
 })();
