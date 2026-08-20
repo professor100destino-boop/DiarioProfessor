@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'android-app/**'
+      - 'scripts/patch_backup_chooser.py'
       - '.github/workflows/build-docencia-facil-apk.yml'
 
 permissions:
@@ -27,6 +28,8 @@ jobs:
         with:
           path: ~/.android/debug.keystore
           key: docencia-facil-debug-keystore-v1
+      - name: Add native backup location chooser
+        run: python3 scripts/patch_backup_chooser.py
       - name: Build APK
         working-directory: android-app
         run: gradle assembleDebug --stacktrace
