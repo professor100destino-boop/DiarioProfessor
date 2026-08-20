@@ -8,9 +8,9 @@ android {
         applicationId 'br.com.professor100destino.docenciafacil'
         minSdk 24
         targetSdk 35
-        versionCode 7
-        versionName '1.0.6'
+        versionCode 8
+        versionName '1.0.7'
     }
 }
 
-// Versão 1.0.6: salvamento e compartilhamento nativo dos PDFs no Android.
+// Versão 1.0.7: seletor nativo para escolher onde salvar o backup (armazenamento local ou nuvem).
