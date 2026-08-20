@@ -8,9 +8,9 @@ android {
         applicationId 'br.com.professor100destino.docenciafacil'
         minSdk 24
         targetSdk 35
-        versionCode 8
-        versionName '1.0.7'
+        versionCode 9
+        versionName '1.0.8'
     }
 }
 
-// Versão 1.0.7: seletor nativo para escolher onde salvar o backup (armazenamento local ou nuvem).
+// Versão 1.0.8: backup rápido nativo e backup automático diário em Downloads/DocenciaFacil.
