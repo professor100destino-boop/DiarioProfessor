@@ -70,21 +70,18 @@
         return;
       }
     }catch(e){console.error(e)}
-
     downloadFallback(file);
     alert('Backup solicitado ao navegador. Verifique a pasta Downloads. Se não aparecer, use “Escolher local / nuvem”.');
   }
 
   async function escolherLocalOuNuvem(){
     const {text,file,filename}=backupData();
-
     try{
       if(window.Android && typeof window.Android.chooseBackupLocation==='function'){
         window.Android.chooseBackupLocation(text,filename);
         return;
       }
     }catch(e){console.error(e)}
-
     if(typeof window.showSaveFilePicker==='function'){
       try{
         const handle=await window.showSaveFilePicker({
@@ -96,26 +93,14 @@
         await writable.close();
         alert('Backup salvo no local escolhido.');
         return;
-      }catch(e){
-        if(e?.name==='AbortError')return;
-        console.error(e);
-      }
+      }catch(e){if(e?.name==='AbortError')return;console.error(e)}
     }
-
     try{
       if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-        await navigator.share({
-          title:'Backup Professor Control',
-          text:'Salvar backup do Professor Control / Docência Fácil',
-          files:[file]
-        });
+        await navigator.share({title:'Backup Professor Control',text:'Salvar backup do Professor Control / Docência Fácil',files:[file]});
         return;
       }
-    }catch(e){
-      if(e?.name==='AbortError')return;
-      console.error(e);
-    }
-
+    }catch(e){if(e?.name==='AbortError')return;console.error(e)}
     downloadFallback(file);
     alert('Seu navegador não permite escolher o local. O download foi solicitado para a pasta Downloads.');
   }
@@ -131,41 +116,36 @@
     }catch(e){console.error('Backup automático:',e)}
   }
 
+  function backupAntesDeFechar(){
+    try{
+      if(!(window.Android && typeof window.Android.saveBackupQuick==='function')) return false;
+      const {text,filename}=backupData('backup-fechamento-professor-control');
+      return window.Android.saveBackupQuick(text,filename,false)!==false;
+    }catch(e){
+      console.error('Backup ao fechar:',e);
+      return false;
+    }
+  }
+
   async function importBackup(file){
     if(!file)return;
     try{
       const txt=await file.text();
       const payload=JSON.parse(txt);
       if(!payload || payload.app!=='Professor Control / Docência Fácil' || !payload.localStorage || typeof payload.localStorage!=='object'){
-        alert('Este arquivo não é um backup válido do Professor Control.');
-        return;
+        alert('Este arquivo não é um backup válido do Professor Control.');return;
       }
       const raw=payload.localStorage[MAIN_KEY];
       if(!raw){alert('O backup não contém os dados principais do Professor Control.');return;}
       let parsed; try{parsed=JSON.parse(raw)}catch(e){alert('Os dados principais do backup estão inválidos.');return;}
       const s=payload.summary||{};
-      const msg=[
-        'Restaurar este backup?',
-        '',
-        `Escolas: ${s.escolas??(parsed.escolas||[]).length}`,
-        `Turmas: ${s.turmas??(parsed.turmas||[]).length}`,
-        `Alunos: ${s.alunos??(parsed.alunos||[]).length}`,
-        `Chamadas/frequências: ${s.frequencias??(parsed.frequencias||[]).length}`,
-        `Planejamentos: ${s.planejamentos??(parsed.planejamentos||[]).length}`,
-        '',
-        'Os dados atuais deste aparelho serão substituídos pelos dados do backup.'
-      ].join('\n');
+      const msg=['Restaurar este backup?','',`Escolas: ${s.escolas??(parsed.escolas||[]).length}`,`Turmas: ${s.turmas??(parsed.turmas||[]).length}`,`Alunos: ${s.alunos??(parsed.alunos||[]).length}`,`Chamadas/frequências: ${s.frequencias??(parsed.frequencias||[]).length}`,`Planejamentos: ${s.planejamentos??(parsed.planejamentos||[]).length}`,'','Os dados atuais deste aparelho serão substituídos pelos dados do backup.'].join('\n');
       if(!confirm(msg))return;
-      Object.entries(payload.localStorage).forEach(([k,v])=>{
-        if(typeof v==='string') localStorage.setItem(k,v);
-      });
+      Object.entries(payload.localStorage).forEach(([k,v])=>{if(typeof v==='string') localStorage.setItem(k,v)});
       sessionStorage.setItem('professor_control_session_ok','1');
       alert('Backup restaurado com sucesso. O aplicativo será recarregado agora.');
       location.reload();
-    }catch(e){
-      console.error(e);
-      alert('Não foi possível ler o backup. Verifique se selecionou o arquivo JSON correto.');
-    }
+    }catch(e){console.error(e);alert('Não foi possível ler o backup. Verifique se selecionou o arquivo JSON correto.')}
   }
 
   function inject(){
@@ -181,23 +161,18 @@
       <div class="button-row" style="display:flex;gap:10px;flex-wrap:wrap">
         <button type="button" class="primary" id="pcChooseBackup" style="background:#168f4d">☁️ Escolher local / nuvem</button>
         <button type="button" class="primary ghost" id="pcExportBackup">⬇ Backup rápido</button>
-        <label class="primary ghost" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:12px 16px;border-radius:12px">⬆ Restaurar backup
-          <input type="file" id="pcImportBackup" accept="application/json,.json" hidden>
-        </label>
+        <label class="primary ghost" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:12px 16px;border-radius:12px">⬆ Restaurar backup<input type="file" id="pcImportBackup" accept="application/json,.json" hidden></label>
       </div>
       <div class="notice" style="margin-top:12px"><b>Backup automático:</b> no APK é salvo uma vez por dia em Downloads/DocenciaFacil. <b>Escolher local / nuvem:</b> permite selecionar armazenamento interno, Google Drive, OneDrive ou outro provedor disponível.</div>`;
     config.appendChild(box);
     document.getElementById('pcChooseBackup').onclick=escolherLocalOuNuvem;
     document.getElementById('pcExportBackup').onclick=exportBackupRapido;
-    document.getElementById('pcImportBackup').onchange=e=>{const f=e.target.files?.[0];importBackup(f);e.target.value='';};
+    document.getElementById('pcImportBackup').onchange=e=>{const f=e.target.files?.[0];importBackup(f);e.target.value=''};
   }
 
   window.professorControlExportBackup=exportBackupRapido;
   window.professorControlChooseBackup=escolherLocalOuNuvem;
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',()=>{inject();setTimeout(tentarBackupAutomatico,1800);});
-  }else{
-    setTimeout(inject,0);
-    setTimeout(tentarBackupAutomatico,1800);
-  }
+  window.professorControlBackupForExit=backupAntesDeFechar;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{inject();setTimeout(tentarBackupAutomatico,1800)});
+  else{setTimeout(inject,0);setTimeout(tentarBackupAutomatico,1800)}
 })();
