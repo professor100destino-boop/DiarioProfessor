@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,7 +12,10 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -31,9 +35,11 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 
@@ -305,6 +311,62 @@ public class MainActivity extends Activity {
     private String encrypt(String v){try{Cipher c=Cipher.getInstance("AES/GCM/NoPadding");c.init(Cipher.ENCRYPT_MODE,getOrCreateKey());return Base64.encodeToString(c.getIV(),Base64.NO_WRAP)+"."+Base64.encodeToString(c.doFinal(v.getBytes(StandardCharsets.UTF_8)),Base64.NO_WRAP);}catch(Exception e){return"";}}
     private String decrypt(String v){if(v==null||v.isEmpty())return"";try{String[]p=v.split("\\.",2);Cipher c=Cipher.getInstance("AES/GCM/NoPadding");c.init(Cipher.DECRYPT_MODE,getOrCreateKey(),new GCMParameterSpec(128,Base64.decode(p[0],Base64.NO_WRAP)));return new String(c.doFinal(Base64.decode(p[1],Base64.NO_WRAP)),StandardCharsets.UTF_8);}catch(Exception e){return"";}}
 
+    private Uri savePdfToDownloads(String base64Data,String filename) throws Exception{
+        if(Build.VERSION.SDK_INT<Build.VERSION_CODES.Q) throw new Exception("O salvamento direto de PDF requer Android 10 ou superior.");
+        if(base64Data==null||base64Data.trim().isEmpty()) throw new Exception("O PDF está vazio.");
+        String raw=base64Data.trim();
+        int comma=raw.indexOf(',');
+        if(comma>=0)raw=raw.substring(comma+1);
+        byte[] bytes=Base64.decode(raw,Base64.DEFAULT);
+        if(bytes.length==0)throw new Exception("O PDF está vazio.");
+
+        String name=(filename==null||filename.trim().isEmpty())?"relatorio.pdf":filename.trim().replaceAll("[^a-zA-Z0-9._-]","_");
+        if(!name.toLowerCase().endsWith(".pdf"))name+=".pdf";
+
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME,name);
+        values.put(MediaStore.MediaColumns.MIME_TYPE,"application/pdf");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DocenciaFacil");
+
+        Uri uri=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+        if(uri==null)throw new Exception("Não foi possível criar o arquivo PDF.");
+        boolean ok=false;
+        try(OutputStream out=getContentResolver().openOutputStream(uri)){
+            if(out==null)throw new Exception("Não foi possível abrir o arquivo PDF.");
+            out.write(bytes);
+            out.flush();
+            ok=true;
+        }finally{
+            if(!ok)getContentResolver().delete(uri,null,null);
+        }
+        return uri;
+    }
+
+    private void savePdfBase64Internal(String base64,String filename,boolean share){
+        try{
+            Uri uri=savePdfToDownloads(base64,filename);
+            runOnUiThread(()->{
+                if(share){
+                    try{
+                        Intent send=new Intent(Intent.ACTION_SEND);
+                        send.setType("application/pdf");
+                        send.putExtra(Intent.EXTRA_STREAM,uri);
+                        send.setClipData(ClipData.newRawUri("PDF",uri));
+                        send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        startActivity(Intent.createChooser(send,"Compartilhar PDF"));
+                    }catch(Exception e){
+                        Toast.makeText(MainActivity.this,"PDF salvo, mas não foi possível abrir o compartilhamento.",Toast.LENGTH_LONG).show();
+                    }
+                }else{
+                    Toast.makeText(MainActivity.this,"PDF salvo em Downloads/DocenciaFacil",Toast.LENGTH_LONG).show();
+                }
+            });
+        }catch(Exception e){
+            String msg=e.getMessage()==null?"Não foi possível salvar o PDF.":e.getMessage();
+            runOnUiThread(()->Toast.makeText(MainActivity.this,msg,Toast.LENGTH_LONG).show());
+        }
+    }
+
     private void toggleOrientation(){int c=getResources().getConfiguration().orientation;setRequestedOrientation(c==Configuration.ORIENTATION_LANDSCAPE?ActivityInfo.SCREEN_ORIENTATION_PORTRAIT:ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);}
     private String orientationAction(){return getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE?"Vertical":"Horizontal";}
     private void updateOrientationLabels(){if(siteOrient!=null)siteOrient.setText("↻ "+orientationAction());if(uiWeb!=null)uiEval("window.siapOrientationChanged&&window.siapOrientationChanged();");}
@@ -325,6 +387,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void menuAction(String a){runOnUiThread(()->menuActionInternal(a));}
         @JavascriptInterface public void toggleOrientation(){runOnUiThread(()->MainActivity.this.toggleOrientation());}
         @JavascriptInterface public String orientationAction(){return MainActivity.this.orientationAction();}
+        @JavascriptInterface public void savePdfBase64(String b,String f,boolean s){savePdfBase64Internal(b,f,s);}
     }
     public class SiapBridge{
         @JavascriptInterface public void captcha(String code){runOnUiThread(()->{
