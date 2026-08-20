@@ -68,7 +68,6 @@
   function setAtividadeRapida(alunoId,avId,valor){
     db.notas[alunoId]??={};
     const atual=Number(db.notas[alunoId][avId]??0);
-    // Tocar novamente no botão selecionado desmarca e volta para zero.
     db.notas[alunoId][avId]=(atual===valor?0:valor);
     localStorage.setItem(KEY,JSON.stringify(db));
     renderAtividades();
@@ -81,7 +80,7 @@
     garantirFerramentas();
     const tid=$('#atividadesTurma')?.value;
     const bim=$('#atividadesBimestre')?.value;
-    const todosAlunos=db.alunos.filter(a=>a.turmaId===tid).map((a,i)=>({...a,__numero:i+1}));
+    const todosAlunos=db.alunos.filter(a=>a.turmaId===tid && a.ativo!==false).map((a,i)=>({...a,__numero:i+1}));
     const termo=normalizar(atividadeBusca);
     let alunos=todosAlunos.filter(a=>{
       if(!termo)return true;
@@ -96,7 +95,7 @@
 
     const ativ=avaliacoesTurma(tid,bim).filter(a=>a.tipo==='atividade');
     const table=$('#atividadesTable'); if(!table)return;
-    if(!todosAlunos.length){table.innerHTML='<p class=muted>Nenhum aluno nesta turma.</p>';return}
+    if(!todosAlunos.length){table.innerHTML='<p class=muted>Nenhum aluno ativo nesta turma.</p>';return}
     if(!ativ.length){table.innerHTML='<p class=muted>Nenhuma atividade cadastrada. Clique em + Nova atividade.</p>';return}
     const heads=ativ.map(a=>`<th>${esc(a.nome)}<br><small>Fez = 10,0 • Mais ou menos = 6,0</small></th>`).join('');
     const corpo=alunos.length?alunos.map(a=>{
