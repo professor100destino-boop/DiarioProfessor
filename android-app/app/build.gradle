@@ -8,9 +8,9 @@ android {
         applicationId 'br.com.professor100destino.docenciafacil'
         minSdk 24
         targetSdk 35
-        versionCode 9
-        versionName '1.0.8'
+        versionCode 10
+        versionName '1.0.9'
     }
 }
 
-// Versão 1.0.8: backup rápido nativo e backup automático diário em Downloads/DocenciaFacil.
+// Versão 1.0.9: impressão nativa e salvamento em PDF das advertências orais e escritas.
