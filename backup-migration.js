@@ -1,5 +1,6 @@
 (()=>{
   const MAIN_KEY='professorControlV1';
+  const AUTO_KEY='professorControlLastAutoBackup';
 
   function allLocalStorage(){
     const out={};
@@ -37,30 +38,46 @@
     };
   }
 
-  function backupData(){
+  function backupData(prefix='backup-professor-control'){
     const payload=buildPayload();
-    const date=new Date().toISOString().slice(0,10);
-    const filename=`backup-professor-control-${date}.json`;
+    const now=new Date();
+    const date=now.toISOString().slice(0,10);
+    const time=now.toTimeString().slice(0,5).replace(':','-');
+    const filename=`${prefix}-${date}-${time}.json`;
     const text=JSON.stringify(payload,null,2);
     const file=new File([text],filename,{type:'application/json'});
     return {payload,text,file,filename};
   }
 
-  function exportBackupRapido(){
-    const {file}=backupData();
+  function downloadFallback(file){
     const url=URL.createObjectURL(file);
     const a=document.createElement('a');
     a.href=url;
     a.download=file.name;
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
-    alert('Backup criado. Se o navegador não perguntou onde salvar, use o botão “Escolher local / nuvem”.');
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+  }
+
+  function exportBackupRapido(){
+    const {text,file,filename}=backupData();
+    try{
+      if(window.Android && typeof window.Android.saveBackupQuick==='function'){
+        const ok=window.Android.saveBackupQuick(text,filename,false);
+        if(ok===false) alert('Não foi possível salvar o backup. Tente “Escolher local / nuvem”.');
+        return;
+      }
+    }catch(e){console.error(e)}
+
+    downloadFallback(file);
+    alert('Backup solicitado ao navegador. Verifique a pasta Downloads. Se não aparecer, use “Escolher local / nuvem”.');
   }
 
   async function escolherLocalOuNuvem(){
     const {text,file,filename}=backupData();
 
-    // APK Docência Fácil: usa o seletor nativo do Android (Downloads, Drive, OneDrive etc.).
     try{
       if(window.Android && typeof window.Android.chooseBackupLocation==='function'){
         window.Android.chooseBackupLocation(text,filename);
@@ -68,7 +85,6 @@
       }
     }catch(e){console.error(e)}
 
-    // Navegadores com File System Access API.
     if(typeof window.showSaveFilePicker==='function'){
       try{
         const handle=await window.showSaveFilePicker({
@@ -86,7 +102,6 @@
       }
     }
 
-    // Android/iOS: abre o menu de compartilhamento; Drive/OneDrive podem aparecer como destino.
     try{
       if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
         await navigator.share({
@@ -101,8 +116,19 @@
       console.error(e);
     }
 
-    // Último recurso: download normal.
-    exportBackupRapido();
+    downloadFallback(file);
+    alert('Seu navegador não permite escolher o local. O download foi solicitado para a pasta Downloads.');
+  }
+
+  function tentarBackupAutomatico(){
+    try{
+      if(!(window.Android && typeof window.Android.saveBackupQuick==='function')) return;
+      const hoje=new Date().toISOString().slice(0,10);
+      if(localStorage.getItem(AUTO_KEY)===hoje) return;
+      const {text,filename}=backupData('backup-auto-professor-control');
+      const ok=window.Android.saveBackupQuick(text,filename,true);
+      if(ok!==false) localStorage.setItem(AUTO_KEY,hoje);
+    }catch(e){console.error('Backup automático:',e)}
   }
 
   async function importBackup(file){
@@ -151,7 +177,7 @@
     box.style.cssText='margin-top:22px;padding-top:20px;border-top:1px solid #dce5f1';
     box.innerHTML=`
       <h3 style="margin:0 0 8px">Backup e restauração</h3>
-      <p class="muted" style="margin:0 0 14px">Faça uma cópia completa dos dados e escolha onde deseja guardar.</p>
+      <p class="muted" style="margin:0 0 14px">No APK, o sistema faz um backup automático por dia em <b>Downloads/DocenciaFacil</b>. Você também pode fazer uma cópia manual quando quiser.</p>
       <div class="button-row" style="display:flex;gap:10px;flex-wrap:wrap">
         <button type="button" class="primary" id="pcChooseBackup" style="background:#168f4d">☁️ Escolher local / nuvem</button>
         <button type="button" class="primary ghost" id="pcExportBackup">⬇ Backup rápido</button>
@@ -159,7 +185,7 @@
           <input type="file" id="pcImportBackup" accept="application/json,.json" hidden>
         </label>
       </div>
-      <div class="notice" style="margin-top:12px"><b>Escolher local / nuvem:</b> no APK abre o seletor do Android, permitindo escolher armazenamento interno, Google Drive, OneDrive ou outros provedores instalados. O backup inclui todos os dados do Professor Control deste aparelho.</div>`;
+      <div class="notice" style="margin-top:12px"><b>Backup automático:</b> no APK é salvo uma vez por dia em Downloads/DocenciaFacil. <b>Escolher local / nuvem:</b> permite selecionar armazenamento interno, Google Drive, OneDrive ou outro provedor disponível.</div>`;
     config.appendChild(box);
     document.getElementById('pcChooseBackup').onclick=escolherLocalOuNuvem;
     document.getElementById('pcExportBackup').onclick=exportBackupRapido;
@@ -168,5 +194,10 @@
 
   window.professorControlExportBackup=exportBackupRapido;
   window.professorControlChooseBackup=escolherLocalOuNuvem;
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject);else setTimeout(inject,0);
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>{inject();setTimeout(tentarBackupAutomatico,1800);});
+  }else{
+    setTimeout(inject,0);
+    setTimeout(tentarBackupAutomatico,1800);
+  }
 })();
