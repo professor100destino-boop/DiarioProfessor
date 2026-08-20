@@ -1,6 +1,21 @@
 (()=>{
   const $=s=>document.querySelector(s);
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  let pdfObjectUrl=null;
+
+  function removerAvisoOffline(){
+    const limpar=()=>{
+      [...document.querySelectorAll('body *')].forEach(el=>{
+        const t=(el.textContent||'').trim().toLowerCase();
+        if((t==='✓ pronto para uso offline'||t==='pronto para uso offline'||t.includes('pronto para uso offline')) && el.children.length<=2){
+          el.style.display='none';
+        }
+      });
+    };
+    limpar();
+    const obs=new MutationObserver(limpar);
+    obs.observe(document.body,{childList:true,subtree:true});
+  }
 
   async function ensureJsPDF(){
     if(window.jspdf?.jsPDF) return window.jspdf.jsPDF;
@@ -10,9 +25,9 @@
       script.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
       document.head.appendChild(script);
     }
-    for(let i=0;i<40;i++){
+    for(let i=0;i<50;i++){
       if(window.jspdf?.jsPDF) return window.jspdf.jsPDF;
-      await sleep(150);
+      await sleep(120);
     }
     throw new Error('Não foi possível carregar o gerador de PDF. Conecte à internet uma vez e tente novamente.');
   }
@@ -71,7 +86,15 @@
     faltosos.forEach((a,i)=>{
       const linhas=doc.splitTextToSize(String(a.nome||''),155);
       const altura=Math.max(7,linhas.length*5);
-      if(y+altura>280){doc.addPage();y=18;doc.setFont('helvetica','bold');doc.text('Nº',m,y);doc.text('ALUNO',m+14,y);y+=6;doc.setFont('helvetica','normal');}
+      if(y+altura>280){
+        doc.addPage();
+        y=18;
+        doc.setFont('helvetica','bold');
+        doc.text('Nº',m,y);
+        doc.text('ALUNO',m+14,y);
+        y+=6;
+        doc.setFont('helvetica','normal');
+      }
       doc.text(String(a.numero||i+1),m,y);
       doc.text(linhas,m+14,y);
       y+=altura;
@@ -79,19 +102,63 @@
 
     const base=(t?.turma||t?.nome||'turma').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'_');
     const filename=`faltosos_${base}_${data}_${aulaDia}a_aula.pdf`;
-    return {doc,filename,faltosos,turmaTexto,data,aulaDia};
+    const blob=doc.output('blob');
+    const file=new File([blob],filename,{type:'application/pdf'});
+    return {blob,file,filename,turmaTexto,data,aulaDia};
   }
 
-  async function baixarBlob(blob,filename){
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=filename;
-    a.style.display='none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),15000);
+  function fecharModalPdf(){
+    document.getElementById('pdfActionsOverlay')?.remove();
+  }
+
+  function mostrarAcoesPdf({blob,file,filename,turmaTexto,data,aulaDia}){
+    fecharModalPdf();
+    if(pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
+    pdfObjectUrl=URL.createObjectURL(blob);
+
+    const overlay=document.createElement('div');
+    overlay.id='pdfActionsOverlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(3,15,35,.58);z-index:999999;display:grid;place-items:center;padding:20px';
+    overlay.innerHTML=`
+      <div style="width:min(520px,100%);background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #0005;color:#14213d">
+        <h3 style="margin:0 0 8px;font-size:25px">PDF dos faltosos pronto</h3>
+        <p style="margin:0 0 18px;color:#64748b;line-height:1.45">Escolha o que deseja fazer com o relatório.</p>
+        <a id="pdfSalvarBtn" href="${pdfObjectUrl}" download="${filename}" style="display:block;text-decoration:none;text-align:center;background:#2563eb;color:white;padding:16px;border-radius:14px;font-weight:900;font-size:18px;margin:10px 0">💾 Salvar PDF</a>
+        <button id="pdfCompartilharBtn" style="display:block;width:100%;border:0;background:#16a34a;color:white;padding:16px;border-radius:14px;font-weight:900;font-size:18px;margin:10px 0">📲 Compartilhar / WhatsApp</button>
+        <button id="pdfFecharBtn" style="display:block;width:100%;border:0;background:#e8eef7;color:#17345f;padding:14px;border-radius:14px;font-weight:800;font-size:17px;margin-top:10px">Fechar</button>
+        <div id="pdfShareMsg" style="display:none;margin-top:12px;padding:12px;border-radius:12px;background:#fff7d6;color:#7a5600;line-height:1.4"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    $('#pdfFecharBtn').onclick=fecharModalPdf;
+    overlay.addEventListener('click',e=>{if(e.target===overlay)fecharModalPdf()});
+
+    $('#pdfCompartilharBtn').onclick=async()=>{
+      const shareBtn=$('#pdfCompartilharBtn');
+      const msg=$('#pdfShareMsg');
+      try{
+        shareBtn.disabled=true;
+        shareBtn.textContent='Abrindo compartilhamento...';
+        if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+          await navigator.share({
+            title:'Relatório de alunos faltosos',
+            text:`${turmaTexto} - ${data.split('-').reverse().join('/')} - ${aulaDia}ª aula`,
+            files:[file]
+          });
+        }else{
+          msg.style.display='block';
+          msg.innerHTML='Este navegador não permite enviar o PDF diretamente. Toque em <b>Salvar PDF</b> e depois envie o arquivo pela conversa do WhatsApp.';
+        }
+      }catch(err){
+        if(err?.name!=='AbortError'){
+          msg.style.display='block';
+          msg.innerHTML='Não foi possível abrir o compartilhamento direto. Toque em <b>Salvar PDF</b> e envie o arquivo pelo WhatsApp.';
+        }
+      }finally{
+        shareBtn.disabled=false;
+        shareBtn.textContent='📲 Compartilhar / WhatsApp';
+      }
+    };
   }
 
   window.gerarRelatorioFaltososPDF=async()=>{
@@ -99,11 +166,8 @@
     const old=btn?.textContent;
     try{
       if(btn){btn.disabled=true;btn.textContent='Gerando PDF...';}
-      const {doc,filename}=await buildPdf();
-      const blob=doc.output('blob');
-      await baixarBlob(blob,filename);
-      if(typeof toast==='function') toast('PDF dos faltosos gerado. Verifique a pasta Downloads.');
-      else alert('PDF gerado. Verifique a pasta Downloads.');
+      const pdf=await buildPdf();
+      mostrarAcoesPdf(pdf);
     }catch(err){
       console.error('Erro ao gerar PDF dos faltosos:',err);
       alert(err?.message||'Não foi possível gerar o PDF dos faltosos.');
@@ -111,4 +175,7 @@
       if(btn){btn.disabled=false;btn.textContent=old||'Gerar PDF dos faltosos';}
     }
   };
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',removerAvisoOffline);
+  else removerAvisoOffline();
 })();
