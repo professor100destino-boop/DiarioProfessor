@@ -111,6 +111,46 @@
     document.getElementById('pdfActionsOverlay')?.remove();
   }
 
+  function hasNativePdfBridge(){
+    try{
+      return !!(window.Android && typeof window.Android.savePdfBase64==='function');
+    }catch(e){
+      return false;
+    }
+  }
+
+  function blobToBase64(blob){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        const data=String(reader.result||'');
+        const p=data.indexOf(',');
+        resolve(p>=0?data.slice(p+1):data);
+      };
+      reader.onerror=()=>reject(reader.error||new Error('Não foi possível preparar o PDF.'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function enviarPdfAoAndroid(blob,filename,share){
+    const base64=await blobToBase64(blob);
+    window.Android.savePdfBase64(base64,filename,!!share);
+  }
+
+  function baixarNoNavegador(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      a.remove();
+      URL.revokeObjectURL(url);
+    },3000);
+  }
+
   function mostrarAcoesPdf({blob,file,filename,turmaTexto,data,aulaDia}){
     fecharModalPdf();
     if(pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
@@ -123,7 +163,7 @@
       <div style="width:min(520px,100%);background:#fff;border-radius:22px;padding:24px;box-shadow:0 20px 60px #0005;color:#14213d">
         <h3 style="margin:0 0 8px;font-size:25px">PDF dos faltosos pronto</h3>
         <p style="margin:0 0 18px;color:#64748b;line-height:1.45">Escolha o que deseja fazer com o relatório.</p>
-        <a id="pdfSalvarBtn" href="${pdfObjectUrl}" download="${filename}" style="display:block;text-decoration:none;text-align:center;background:#2563eb;color:white;padding:16px;border-radius:14px;font-weight:900;font-size:18px;margin:10px 0">💾 Salvar PDF</a>
+        <button id="pdfSalvarBtn" style="display:block;width:100%;border:0;background:#2563eb;color:white;padding:16px;border-radius:14px;font-weight:900;font-size:18px;margin:10px 0">💾 Salvar PDF</button>
         <button id="pdfCompartilharBtn" style="display:block;width:100%;border:0;background:#16a34a;color:white;padding:16px;border-radius:14px;font-weight:900;font-size:18px;margin:10px 0">📲 Compartilhar / WhatsApp</button>
         <button id="pdfFecharBtn" style="display:block;width:100%;border:0;background:#e8eef7;color:#17345f;padding:14px;border-radius:14px;font-weight:800;font-size:17px;margin-top:10px">Fechar</button>
         <div id="pdfShareMsg" style="display:none;margin-top:12px;padding:12px;border-radius:12px;background:#fff7d6;color:#7a5600;line-height:1.4"></div>
@@ -133,12 +173,47 @@
     $('#pdfFecharBtn').onclick=fecharModalPdf;
     overlay.addEventListener('click',e=>{if(e.target===overlay)fecharModalPdf()});
 
+    $('#pdfSalvarBtn').onclick=async()=>{
+      const btn=$('#pdfSalvarBtn');
+      const msg=$('#pdfShareMsg');
+      const old=btn.textContent;
+      try{
+        btn.disabled=true;
+        btn.textContent='Salvando PDF...';
+        if(hasNativePdfBridge()){
+          await enviarPdfAoAndroid(blob,filename,false);
+          msg.style.display='block';
+          msg.textContent='PDF enviado para a pasta Downloads/DocenciaFacil.';
+        }else{
+          baixarNoNavegador(blob,filename);
+          if(window.Android){
+            msg.style.display='block';
+            msg.innerHTML='Esta versão instalada ainda não possui o salvamento nativo de PDF. Atualize o APK do Docência Fácil.';
+          }
+        }
+      }catch(err){
+        console.error('Erro ao salvar PDF:',err);
+        msg.style.display='block';
+        msg.textContent='Não foi possível salvar o PDF. Atualize o aplicativo e tente novamente.';
+      }finally{
+        btn.disabled=false;
+        btn.textContent=old;
+      }
+    };
+
     $('#pdfCompartilharBtn').onclick=async()=>{
       const shareBtn=$('#pdfCompartilharBtn');
       const msg=$('#pdfShareMsg');
       try{
         shareBtn.disabled=true;
         shareBtn.textContent='Abrindo compartilhamento...';
+
+        if(hasNativePdfBridge()){
+          await enviarPdfAoAndroid(blob,filename,true);
+          msg.style.display='none';
+          return;
+        }
+
         if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
           await navigator.share({
             title:'Relatório de alunos faltosos',
@@ -147,12 +222,15 @@
           });
         }else{
           msg.style.display='block';
-          msg.innerHTML='Este navegador não permite enviar o PDF diretamente. Toque em <b>Salvar PDF</b> e depois envie o arquivo pela conversa do WhatsApp.';
+          msg.innerHTML=window.Android
+            ?'Esta versão instalada ainda não possui compartilhamento nativo de PDF. Atualize o APK do Docência Fácil.'
+            :'Este navegador não permite enviar o PDF diretamente. Toque em <b>Salvar PDF</b> e depois envie o arquivo pelo WhatsApp.';
         }
       }catch(err){
         if(err?.name!=='AbortError'){
+          console.error('Erro ao compartilhar PDF:',err);
           msg.style.display='block';
-          msg.innerHTML='Não foi possível abrir o compartilhamento direto. Toque em <b>Salvar PDF</b> e envie o arquivo pelo WhatsApp.';
+          msg.innerHTML='Não foi possível abrir o compartilhamento. Atualize o aplicativo e tente novamente.';
         }
       }finally{
         shareBtn.disabled=false;
