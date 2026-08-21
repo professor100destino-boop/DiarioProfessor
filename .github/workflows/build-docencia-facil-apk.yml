@@ -1,17 +1,9 @@
-name: Build Docencia Facil Permanente APK
+name: Build Docencia Facil Permanente APK — emergência nativa
 
+# A base permanente NÃO é recompilada em atualizações normais.
+# Este fluxo fica manual apenas para alguma mudança Android realmente indispensável.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'android-app/**'
-      - 'scripts/patch_backup_chooser.py'
-      - 'scripts/patch_print_advertencias.py'
-      - 'scripts/patch_app_lifecycle.py'
-      - 'scripts/patch_siap_login.py'
-      - 'scripts/patch_remote_siap_permanent.py'
-      - 'scripts/regression_checks.py'
-      - '.github/workflows/build-docencia-facil-apk.yml'
 
 permissions:
   contents: write
@@ -28,7 +20,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Restore signing key for this build
+      - name: Restore signing key for emergency native build
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
