@@ -64,7 +64,13 @@ function normalizeStudents(){
  db.advertencias=(db.advertencias||[]).map(r=>({...r,alunoId:idmap.get(r.alunoId)||r.alunoId}));
  for(const a of db.alunos){
   const bid=baseIdAluno(a);if(!bid)continue;
-  if(!db.matriculas.some(m=>m.alunoId===a.id&&m.status==='ativa'))db.matriculas.push({id:uid(),alunoId:a.id,turmaBaseId:bid,dataInicio:today(),dataFim:a.ativo===false?today():'',status:a.ativo===false?'inativa':'ativa',motivo:a.motivoInativo||''});
+  const active=db.matriculas.some(m=>m.alunoId===a.id&&m.status==='ativa');
+  const sameBase=db.matriculas.some(m=>m.alunoId===a.id&&m.turmaBaseId===bid);
+  if(a.ativo!==false){
+   if(!active)db.matriculas.push({id:uid(),alunoId:a.id,turmaBaseId:bid,dataInicio:today(),dataFim:'',status:'ativa',motivo:''});
+  }else if(!sameBase){
+   db.matriculas.push({id:uid(),alunoId:a.id,turmaBaseId:bid,dataInicio:today(),dataFim:today(),status:'inativa',motivo:a.motivoInativo||''});
+  }
  }
  persist();
 }
