@@ -10,16 +10,16 @@ body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-i
 </head>
 <body>
 <div class="box">
-<h2>Professor Control</h2>
-<p class="sub">Atualização do sistema</p>
-<div class="info"><b>Docência Fácil 1.0.11:</b> corrigida a confirmação de entrada do <b>SIAP Fácil</b>. O aplicativo agora espera a resposta real do portal e só informa erro quando o formulário de login realmente permanece aberto. Também foi melhorado o envio do código de segurança.</div>
-<div class="info"><b>Nova estrutura acadêmica:</b> aluno único por turma, professor e disciplinas separados, Minhas Aulas e transferência de aluno com histórico e notas preservados.</div>
-<div class="warn"><b>Para corrigir o SIAP Fácil é necessário instalar o APK 1.0.11 por cima da versão atual.</b> Não desinstale antes, para preservar os dados locais do aplicativo.</div>
+<h2>Docência Fácil 2</h2>
+<p class="sub">Migração segura sem apagar o aplicativo atual</p>
+<div class="info"><b>Por que existe esta versão?</b> O Android detectou conflito de assinatura na edição antiga e bloqueou a atualização. O Docência Fácil 2 usa um novo identificador e pode ser instalado <b>ao lado do atual</b>.</div>
+<div class="info"><b>Inclui a correção do SIAP:</b> o aplicativo espera a resposta real do portal antes de considerar o código de segurança inválido.</div>
+<div class="warn"><b>Não desinstale o Docência Fácil antigo agora.</b> Instale o Docência Fácil 2, restaure seu backup e confira escolas, turmas, alunos, notas e chamadas. Só depois remova o antigo.</div>
+<a class="btn green" href="./apk/Docencia-Facil-2-SIAP.apk?v=200" download="Docencia-Facil-2-SIAP-v2.0.0.apk">⬇ Baixar Docência Fácil 2.0.0</a>
 <button class="btn blue" onclick="atualizar()">🔄 Atualizar Professor Control</button>
-<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=111" download="Docencia-Facil-SIAP-v1.0.11.apk">⬇ Baixar Docência Fácil 1.0.11</a>
 <a class="btn gray" href="./">Abrir Professor Control</a>
 <p id="msg"></p>
-<div class="ver">Docência Fácil 1.0.11 • correção do login SIAP • modelo acadêmico V2</div>
+<div class="ver">Docência Fácil 2.0.0 • instalação paralela • restauração por backup • correção do login SIAP</div>
 </div>
 <script>
 async function atualizar(){
