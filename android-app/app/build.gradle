@@ -8,9 +8,9 @@ android {
         applicationId 'br.com.professor100destino.docenciafacil'
         minSdk 24
         targetSdk 35
-        versionCode 11
-        versionName '1.0.10'
+        versionCode 12
+        versionName '1.0.11'
     }
 }
 
-// Versão 1.0.10: botão Voltar envia o app para segundo plano, botão Fechar e oferta de backup antes de encerrar.
+// Versão 1.0.11: corrige a confirmação de login do SIAP, aguardando a resposta real do portal antes de considerar o código inválido.
