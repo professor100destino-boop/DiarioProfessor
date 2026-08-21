@@ -1,4 +1,4 @@
-name: Build Docencia Facil 2 APK
+name: Build Docencia Facil Permanente APK
 
 on:
   workflow_dispatch:
@@ -9,6 +9,7 @@ on:
       - 'scripts/patch_print_advertencias.py'
       - 'scripts/patch_app_lifecycle.py'
       - 'scripts/patch_siap_login.py'
+      - 'scripts/patch_remote_siap_permanent.py'
       - 'scripts/regression_checks.py'
       - '.github/workflows/build-docencia-facil-apk.yml'
 
@@ -27,19 +28,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Restore stable debug signing key
+      - name: Restore signing key for this build
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
-          key: docencia-facil-debug-keystore-v1
+          key: docencia-facil-permanente-keystore-v1
       - name: Add native backup location chooser
         run: python3 scripts/patch_backup_chooser.py
       - name: Add native advertencia printing
         run: python3 scripts/patch_print_advertencias.py
       - name: Keep app alive and add safe close
         run: python3 scripts/patch_app_lifecycle.py
-      - name: Fix SIAP login confirmation
+      - name: Keep legacy SIAP compatibility
         run: python3 scripts/patch_siap_login.py
+      - name: Add permanent remote SIAP bridge
+        run: python3 scripts/patch_remote_siap_permanent.py
       - name: Check essential features before build
         run: python3 scripts/regression_checks.py
       - name: Build APK
@@ -48,14 +51,14 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Docencia-Facil-2-SIAP-debug
+          name: Docencia-Facil-Permanente-debug
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publish APK in repository
+      - name: Publish permanent APK in repository
         run: |
           mkdir -p apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-2-SIAP.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-Permanente.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/Docencia-Facil-2-SIAP.apk
-          git commit -m "Publica APK Docencia Facil 2 + SIAP" || exit 0
+          git add apk/Docencia-Facil-Permanente.apk
+          git commit -m "Publica APK base permanente do Docencia Facil" || exit 0
           git push
