@@ -9,6 +9,7 @@ on:
       - 'scripts/patch_print_advertencias.py'
       - 'scripts/patch_app_lifecycle.py'
       - 'scripts/patch_siap_login.py'
+      - 'scripts/regression_checks.py'
       - '.github/workflows/build-docencia-facil-apk.yml'
 
 permissions:
@@ -39,6 +40,8 @@ jobs:
         run: python3 scripts/patch_app_lifecycle.py
       - name: Fix SIAP login confirmation
         run: python3 scripts/patch_siap_login.py
+      - name: Check essential features before build
+        run: python3 scripts/regression_checks.py
       - name: Build APK
         working-directory: android-app
         run: gradle assembleDebug --stacktrace
