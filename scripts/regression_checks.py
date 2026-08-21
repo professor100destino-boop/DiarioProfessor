@@ -44,7 +44,7 @@ for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','aca
         errors.append(f'sw.js: faltando cache de {token}')
 
 require('scripts/patch_backup_chooser.py','chooseBackupLocationInternal','saveBackupQuickInternal','@JavascriptInterface public boolean saveBackupQuick')
-require('scripts/patch_print_advertencias.py','printAdvertencia')
+require('scripts/patch_print_advertencias.py','printHtmlInternal','@JavascriptInterface public void printHtml')
 require('scripts/patch_app_lifecycle.py','professorControlBackupForExit')
 require('scripts/patch_siap_login.py','verifyLoginAfterSubmit')
 
