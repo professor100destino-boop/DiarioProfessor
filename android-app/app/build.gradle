@@ -8,9 +8,9 @@ android {
         applicationId 'br.com.professor100destino.docenciafacil2'
         minSdk 24
         targetSdk 35
-        versionCode 201
-        versionName '2.0.1'
+        versionCode 202
+        versionName '2.0.2'
     }
 }
 
-// Docência Fácil 2.0.1: atualização sobre a 2.0.0 com seletor nativo de backup e preservação dos dados locais.
+// Docência Fácil 2.0.2: corrige somente a confirmação lenta do login SIAP; demais módulos preservados.
