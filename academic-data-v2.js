@@ -46,7 +46,7 @@ function normalizeStudents(){
    if(!a.matricula&&a0.matricula)a.matricula=a0.matricula;
    if(!a.numero&&a0.numero)a.numero=a0.numero;
    if((a0.nome||'').length>(a.nome||'').length)a.nome=a0.nome;
-   if(a0.ativo!==false)a.ativo=true;
+   if(a0.ativo===false){a.ativo=false;if(a0.motivoInativo)a.motivoInativo=a0.motivoInativo;if(a0.dataInativacao)a.dataInativacao=a0.dataInativacao}
   }
   idmap.set(a0.id,a.id);
   if(db.notas[a0.id]){db.notas[a.id]??={};Object.entries(db.notas[a0.id]).forEach(([k,v])=>{if(db.notas[a.id][k]===undefined)db.notas[a.id][k]=v})}
@@ -62,6 +62,10 @@ function normalizeStudents(){
  Object.keys(db.mediasBimestrais).forEach(k=>{const n=idmap.get(k);if(n&&n!==k)delete db.mediasBimestrais[k]});
  db.frequencias=(db.frequencias||[]).map(f=>({...f,alunoId:idmap.get(f.alunoId)||f.alunoId}));
  db.advertencias=(db.advertencias||[]).map(r=>({...r,alunoId:idmap.get(r.alunoId)||r.alunoId}));
+ db.matriculas=(db.matriculas||[]).map(m=>({...m,alunoId:idmap.get(m.alunoId)||m.alunoId}));
+ db.transferencias=(db.transferencias||[]).map(t=>({...t,alunoId:idmap.get(t.alunoId)||t.alunoId}));
+ const seenMat=new Set();
+ db.matriculas=db.matriculas.filter(m=>{const k=[m.alunoId,m.turmaBaseId,m.status,m.dataInicio||'',m.dataFim||'',m.motivo||''].join('|');if(seenMat.has(k))return false;seenMat.add(k);return true});
  for(const a of db.alunos){
   const bid=baseIdAluno(a);if(!bid)continue;
   const active=db.matriculas.some(m=>m.alunoId===a.id&&m.status==='ativa');
