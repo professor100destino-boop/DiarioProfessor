@@ -1,4 +1,4 @@
-name: Build Docencia Facil APK
+name: Build Docencia Facil 2 APK
 
 on:
   workflow_dispatch:
@@ -45,14 +45,14 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Docencia-Facil-SIAP-debug
+          name: Docencia-Facil-2-SIAP-debug
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
       - name: Publish APK in repository
         run: |
           mkdir -p apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-SIAP.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-2-SIAP.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/Docencia-Facil-SIAP.apk
-          git commit -m "Atualiza APK Docencia Facil + SIAP" || exit 0
+          git add apk/Docencia-Facil-2-SIAP.apk
+          git commit -m "Publica APK Docencia Facil 2 + SIAP" || exit 0
           git push
