@@ -13,4 +13,4 @@ android {
     }
 }
 
-// Docência Fácil 2: novo identificador Android para instalar ao lado da edição anterior e permitir migração segura por backup.
+// Docência Fácil 2.0.1: atualização sobre a 2.0.0 com seletor nativo de backup e preservação dos dados locais.
