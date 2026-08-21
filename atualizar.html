@@ -5,19 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Professor Control - Atualização</title>
 <style>
-body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}.box{background:#fff;padding:28px;border-radius:20px;max-width:560px;width:100%;text-align:center;box-shadow:0 10px 35px #0002}h2{margin-top:0;font-size:30px}.sub{color:#64748b;margin-bottom:24px}.btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:17px 16px;margin:12px 0;font-size:19px;font-weight:800;text-decoration:none;cursor:pointer}.blue{background:#2563eb;color:#fff}.green{background:#15803d;color:#fff}.gray{background:#e8eef7;color:#17345f}.warn{background:#fff7d6;color:#7a5600;padding:14px;border-radius:12px;text-align:left;line-height:1.45;margin:16px 0}.ok{color:#15803d;font-weight:700}.err{color:#b91c1c;font-weight:700}.ver{margin-top:20px;color:#64748b;font-size:14px}
+body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}.box{background:#fff;padding:28px;border-radius:20px;max-width:600px;width:100%;text-align:center;box-shadow:0 10px 35px #0002}h2{margin-top:0;font-size:30px}.sub{color:#64748b;margin-bottom:24px}.btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:17px 16px;margin:12px 0;font-size:19px;font-weight:800;text-decoration:none;cursor:pointer}.blue{background:#2563eb;color:#fff}.green{background:#15803d;color:#fff}.gray{background:#e8eef7;color:#17345f}.warn{background:#fff7d6;color:#7a5600;padding:14px;border-radius:12px;text-align:left;line-height:1.45;margin:16px 0}.info{background:#edf6ff;color:#174a84;padding:14px;border-radius:12px;text-align:left;line-height:1.45;margin:16px 0}.ok{color:#15803d;font-weight:700}.err{color:#b91c1c;font-weight:700}.ver{margin-top:20px;color:#64748b;font-size:14px}
 </style>
 </head>
 <body>
 <div class="box">
 <h2>Professor Control</h2>
 <p class="sub">Atualização do sistema</p>
-<div class="warn"><b>Docência Fácil 1.0.10:</b> o botão <b>Voltar</b> não encerra mais o aplicativo. Da tela inicial ele envia o Docência Fácil para segundo plano. Também foi adicionado <b>Fechar aplicativo</b>, com opção de <b>fazer backup e fechar</b>.</div>
+<div class="info"><b>Nova estrutura acadêmica:</b> agora o aluno pertence à <b>turma física</b> e é cadastrado uma única vez. Professor, disciplinas e os vínculos de ensino ficam separados em <b>Professor e Disciplinas</b> e <b>Minhas Aulas</b>. Também foi incluída a <b>transferência de aluno entre turmas</b>, preservando histórico e notas.</div>
+<div class="warn"><b>Importante:</b> esta atualização faz uma migração automática dos cadastros antigos e guarda internamente uma cópia do banco anterior. Para receber esta mudança, basta usar <b>Atualizar Professor Control</b>; não é necessário reinstalar o APK.</div>
 <button class="btn blue" onclick="atualizar()">🔄 Atualizar Professor Control</button>
-<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=110" download="Docencia-Facil-SIAP-v1.0.10.apk">⬇ Baixar Docência Fácil 1.0.10</a>
 <a class="btn gray" href="./">Abrir Professor Control</a>
+<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=110" download="Docencia-Facil-SIAP-v1.0.10.apk">⬇ APK Docência Fácil 1.0.10</a>
 <p id="msg"></p>
-<div class="ver">Docência Fácil + SIAP Fácil 1.0.10 • segundo plano • estado preservado • fechar com backup</div>
+<div class="ver">Modelo acadêmico V2 • aluno único por turma • professor + disciplinas • Minhas Aulas • transferência com histórico</div>
 </div>
 <script>
 async function atualizar(){
