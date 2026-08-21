@@ -1,0 +1,21 @@
+name: Check Professor Control Regressions
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '*.js'
+      - 'index.html'
+      - 'sw.js'
+      - 'service-worker.js'
+      - 'android-app/**'
+      - 'scripts/**'
+      - '.github/workflows/check-regressions.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar funções essenciais
+        run: python3 scripts/regression_checks.py
