@@ -5,12 +5,12 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'br.com.professor100destino.docenciafacil2'
+        applicationId 'br.com.professor100destino.docenciafacil.permanente'
         minSdk 24
         targetSdk 35
-        versionCode 202
-        versionName '2.0.2'
+        versionCode 300
+        versionName '3.0.0'
     }
 }
 
-// Docência Fácil 2.0.2: corrige somente a confirmação lenta do login SIAP; demais módulos preservados.
+// Docência Fácil 3.0.0: base permanente. Atualizações normais são feitas dentro do app, sem reinstalar APK.
