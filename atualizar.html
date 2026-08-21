@@ -11,27 +11,33 @@ body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-i
 <body>
 <div class="box">
 <h2>Docência Fácil 2</h2>
-<p class="sub">Migração segura sem apagar o aplicativo atual</p>
-<div class="info"><b>Por que existe esta versão?</b> O Android detectou conflito de assinatura na edição antiga e bloqueou a atualização. O Docência Fácil 2 usa um novo identificador e pode ser instalado <b>ao lado do atual</b>.</div>
-<div class="info"><b>Inclui a correção do SIAP:</b> o aplicativo espera a resposta real do portal antes de considerar o código de segurança inválido.</div>
-<div class="warn"><b>Não desinstale o Docência Fácil antigo agora.</b> Instale o Docência Fácil 2, restaure seu backup e confira escolas, turmas, alunos, notas e chamadas. Só depois remova o antigo.</div>
+<p class="sub">Atualização e instalação segura</p>
+<div class="info"><b>Atualizações normais:</b> a partir desta versão, o Professor Control pode ser atualizado <b>dentro do próprio aplicativo</b>, em Configurações → Atualizações, sem apagar seus dados.</div>
+<div class="info"><b>APK separado:</b> o botão abaixo continua disponível somente quando for necessário instalar/reinstalar o componente Android do Docência Fácil 2.</div>
 <a class="btn green" href="./apk/Docencia-Facil-2-SIAP.apk?v=200" download="Docencia-Facil-2-SIAP-v2.0.0.apk">⬇ Baixar Docência Fácil 2.0.0</a>
 <button class="btn blue" onclick="atualizar()">🔄 Atualizar Professor Control</button>
 <a class="btn gray" href="./">Abrir Professor Control</a>
 <p id="msg"></p>
-<div class="ver">Docência Fácil 2.0.0 • instalação paralela • restauração por backup • correção do login SIAP</div>
+<div class="ver">Docência Fácil 2.0.0 • atualização interna • backup confiável • checagem contra regressões</div>
 </div>
 <script>
+let updating=false;
 async function atualizar(){
+ if(updating)return;updating=true;
  const msg=document.getElementById('msg');
  try{
-  msg.className='';msg.textContent='Removendo o cache antigo…';
+  msg.className='';msg.textContent='Atualizando o sistema…';
   sessionStorage.setItem('professor_control_session_ok','1');
   if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs){try{await r.unregister()}catch(e){}}}
   if('caches' in window){const ks=await caches.keys();await Promise.all(ks.filter(k=>k.startsWith('professor-control-')).map(k=>caches.delete(k)))}
   msg.className='ok';msg.textContent='Atualização preparada. Abrindo a versão nova…';
-  setTimeout(()=>location.replace('./?fresh='+Date.now()),900);
- }catch(e){console.error(e);msg.className='err';msg.textContent='Não foi possível limpar a versão antiga. Verifique a internet e tente novamente.'}
+  setTimeout(()=>location.replace('./?fresh='+Date.now()),500);
+ }catch(e){console.error(e);updating=false;msg.className='err';msg.textContent='Não foi possível atualizar agora. Seus dados não foram alterados.'}
+}
+// Compatibilidade com o botão antigo: ele enviava ?pwa=1. Nessa situação,
+// esta página atualiza automaticamente e volta ao aplicativo sem exigir outro toque.
+if(new URLSearchParams(location.search).get('pwa')==='1'){
+ window.addEventListener('DOMContentLoaded',()=>setTimeout(atualizar,120));
 }
 </script>
 </body>
