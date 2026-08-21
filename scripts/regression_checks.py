@@ -47,14 +47,17 @@ require('scripts/patch_backup_chooser.py','chooseBackupLocationInternal','saveBa
 require('scripts/patch_print_advertencias.py','printHtmlInternal','@JavascriptInterface public void printHtml')
 require('scripts/patch_app_lifecycle.py','professorControlBackupForExit')
 require('scripts/patch_siap_login.py','verifyLoginAfterSubmit')
+require('scripts/patch_remote_siap_permanent.py','showRemoteSiap','siapEvalRemoteInternal','siapFillCredentialsInternal','remoteSiapMode')
+require('siap-remoto.html','onSiapPageFinished','siapFillCredentials','siapEval','Aguardando o SIAP confirmar a entrada','atualizável sem reinstalar o aplicativo')
 
-require('android-app/app/src/main/AndroidManifest.xml','android.permission.INTERNET','.MainActivity')
-require('android-app/app/build.gradle',"applicationId 'br.com.professor100destino.docenciafacil2'")
+require('android-app/app/src/main/AndroidManifest.xml','android.permission.INTERNET','.MainActivity','android:label="Docência Fácil"')
+require('android-app/app/build.gradle',"applicationId 'br.com.professor100destino.docenciafacil.permanente'","versionName '3.0.0'")
 
 critical_files=[
     'attendance-pdf-fix.js','advertencias.js','advertencias-print.js','activities-quick-mark.js',
     'academic-data-v2.js','academic-admin-v2.js','academic-students-v2.js','academic-roster-v2.js',
-    'academic-reports-v2.js','academic-dashboard-v2.js','planning-execute.js','horarios.js','siap-integracao.js'
+    'academic-reports-v2.js','academic-dashboard-v2.js','planning-execute.js','horarios.js','siap-integracao.js',
+    'recovery-transfer.js','update-app.js','siap-remoto.html'
 ]
 for f in critical_files:
     read(f)
@@ -64,4 +67,4 @@ if errors:
     for e in errors:
         print(' -',e)
     sys.exit(1)
-print('REGRESSION CHECK: OK — funções essenciais preservadas')
+print('REGRESSION CHECK: OK — base permanente preserva funções essenciais')
