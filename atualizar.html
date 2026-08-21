@@ -12,13 +12,14 @@ body{font-family:system-ui;background:#eef3fb;color:#14213d;display:grid;place-i
 <div class="box">
 <h2>Professor Control</h2>
 <p class="sub">Atualização do sistema</p>
-<div class="info"><b>Nova estrutura acadêmica:</b> agora o aluno pertence à <b>turma física</b> e é cadastrado uma única vez. Professor, disciplinas e os vínculos de ensino ficam separados em <b>Professor e Disciplinas</b> e <b>Minhas Aulas</b>. Também foi incluída a <b>transferência de aluno entre turmas</b>, preservando histórico e notas.</div>
-<div class="warn"><b>Importante:</b> esta atualização faz uma migração automática dos cadastros antigos e guarda internamente uma cópia do banco anterior. Para receber esta mudança, basta usar <b>Atualizar Professor Control</b>; não é necessário reinstalar o APK.</div>
+<div class="info"><b>Docência Fácil 1.0.11:</b> corrigida a confirmação de entrada do <b>SIAP Fácil</b>. O aplicativo agora espera a resposta real do portal e só informa erro quando o formulário de login realmente permanece aberto. Também foi melhorado o envio do código de segurança.</div>
+<div class="info"><b>Nova estrutura acadêmica:</b> aluno único por turma, professor e disciplinas separados, Minhas Aulas e transferência de aluno com histórico e notas preservados.</div>
+<div class="warn"><b>Para corrigir o SIAP Fácil é necessário instalar o APK 1.0.11 por cima da versão atual.</b> Não desinstale antes, para preservar os dados locais do aplicativo.</div>
 <button class="btn blue" onclick="atualizar()">🔄 Atualizar Professor Control</button>
+<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=111" download="Docencia-Facil-SIAP-v1.0.11.apk">⬇ Baixar Docência Fácil 1.0.11</a>
 <a class="btn gray" href="./">Abrir Professor Control</a>
-<a class="btn green" href="./apk/Docencia-Facil-SIAP.apk?v=110" download="Docencia-Facil-SIAP-v1.0.10.apk">⬇ APK Docência Fácil 1.0.10</a>
 <p id="msg"></p>
-<div class="ver">Modelo acadêmico V2 • aluno único por turma • professor + disciplinas • Minhas Aulas • transferência com histórico</div>
+<div class="ver">Docência Fácil 1.0.11 • correção do login SIAP • modelo acadêmico V2</div>
 </div>
 <script>
 async function atualizar(){
