@@ -8,6 +8,7 @@ on:
       - 'scripts/patch_backup_chooser.py'
       - 'scripts/patch_print_advertencias.py'
       - 'scripts/patch_app_lifecycle.py'
+      - 'scripts/patch_siap_login.py'
       - '.github/workflows/build-docencia-facil-apk.yml'
 
 permissions:
@@ -36,6 +37,8 @@ jobs:
         run: python3 scripts/patch_print_advertencias.py
       - name: Keep app alive and add safe close
         run: python3 scripts/patch_app_lifecycle.py
+      - name: Fix SIAP login confirmation
+        run: python3 scripts/patch_siap_login.py
       - name: Build APK
         working-directory: android-app
         run: gradle assembleDebug --stacktrace
