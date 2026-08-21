@@ -5,12 +5,12 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'br.com.professor100destino.docenciafacil'
+        applicationId 'br.com.professor100destino.docenciafacil2'
         minSdk 24
         targetSdk 35
-        versionCode 12
-        versionName '1.0.11'
+        versionCode 200
+        versionName '2.0.0'
     }
 }
 
-// Versão 1.0.11: corrige a confirmação de login do SIAP, aguardando a resposta real do portal antes de considerar o código inválido.
+// Docência Fácil 2: novo identificador Android para instalar ao lado da edição anterior e permitir migração segura por backup.
