@@ -3,9 +3,12 @@ from pathlib import Path
 p = Path('android-app/app/src/main/java/br/com/professor100destino/docenciafacil/MainActivity.java')
 s = p.read_text(encoding='utf-8')
 
+# PATCH ISOLADO DO LOGIN SIAP.
+# Não altera backup, Professor Control, PDFs, navegação ou demais módulos.
+
 s = s.replace(
     '    private boolean loginSubmitted=false;\n    private boolean captchaAfterFailure=false;\n',
-    '    private boolean loginSubmitted=false;\n    private boolean loginCheckPending=false;\n    private boolean captchaAfterFailure=false;\n'
+    '    private boolean loginSubmitted=false;\n    private boolean loginCheckPending=false;\n    private int loginVerifyCount=0;\n    private boolean captchaAfterFailure=false;\n'
 )
 
 old = '''                if(low.contains("login.aspx")||low.endsWith("/login")||low.contains("/login?")){
@@ -19,22 +22,27 @@ old = '''                if(low.contains("login.aspx")||low.endsWith("/login")||
                 }
 '''
 new = '''                if(low.contains("login.aspx")||low.endsWith("/login")||low.contains("/login?")){
+                    // O SIAP pode permanecer alguns segundos em login.aspx enquanto conclui o postback.
+                    // Não tratar onPageFinished de login.aspx como falha imediata.
                     if(loginSubmitted){
                         if(!loginCheckPending){
                             loginCheckPending=true;
-                            siapWeb.postDelayed(()->verifyLoginAfterSubmit(),1400);
+                            loginVerifyCount=0;
+                            siapWeb.postDelayed(()->verifyLoginAfterSubmit(),1200);
                         }
                         return;
                     }
                     loginCheckPending=false;
+                    loginVerifyCount=0;
                     showShell("captcha");
                     injectLoginAndReadCaptcha();
                     return;
                 }
-                // Qualquer navegação para fora da página de login após o envio confirma a entrada.
+                // Navegou para fora do login após o envio: entrada confirmada.
                 if(loginSubmitted){
                     loginSubmitted=false;
                     loginCheckPending=false;
+                    loginVerifyCount=0;
                     captchaAfterFailure=false;
                     loginAttempts=0;
                     showShell("menu");
@@ -48,30 +56,47 @@ s = s.replace(old, new, 1)
 anchor = '''    private void menuActionInternal(String action){
 '''
 method = '''    private void verifyLoginAfterSubmit(){
+        if(!loginSubmitted){loginCheckPending=false;loginVerifyCount=0;return;}
         String url=siapWeb.getUrl();
         String low=url==null?"":url.toLowerCase();
         if(!(low.contains("login.aspx")||low.endsWith("/login")||low.contains("/login?"))){
-            loginSubmitted=false; loginCheckPending=false; captchaAfterFailure=false; loginAttempts=0;
+            loginSubmitted=false; loginCheckPending=false; loginVerifyCount=0;
+            captchaAfterFailure=false; loginAttempts=0;
             showShell("menu");
             return;
         }
+
+        // Além da URL, verifica o DOM. Alguns retornos do SIAP mantêm login.aspx por alguns instantes.
         String js="(function(){try{"+
             "var vis=function(e){return e&&e.offsetParent!==null&&!e.disabled};"+
+            "var success=!!document.querySelector('a[href*=\\\"DiarioEscolar\\\"],a[href*=\\\"MenuSistema\\\"],a[href*=\\\"AcompanhamentoPlanejamento\\\"],a[href*=\\\"DefinirEscola\\\"]');"+
+            "if(success)return 'success';"+
             "var ins=[].slice.call(document.querySelectorAll('input')).filter(vis);"+
             "var p=ins.find(function(i){return (i.type||'').toLowerCase()==='password';});"+
-            "var c=ins.find(function(i){var z=((i.id||'')+' '+(i.name||'')+' '+(i.placeholder||'')).toLowerCase();var t=(i.type||'text').toLowerCase();return i!==p&&(t==='text'||t==='tel'||t==='number')&&/cod|segur|captcha|verif/.test(z);});"+
-            "return !!p&&!!c;"+
-            "}catch(e){return true;}})();";
+            "if(!p)return 'wait';"+
+            "return 'login';"+
+            "}catch(e){return 'wait';}})();";
+
         siapWeb.evaluateJavascript(js,value->runOnUiThread(()->{
-            loginCheckPending=false;
             String v=value==null?"":value.replace("\\\"","").trim();
-            boolean stillLogin="true".equalsIgnoreCase(v);
-            if(!stillLogin){
-                loginSubmitted=false; captchaAfterFailure=false; loginAttempts=0;
+            if("success".equalsIgnoreCase(v)){
+                loginSubmitted=false; loginCheckPending=false; loginVerifyCount=0;
+                captchaAfterFailure=false; loginAttempts=0;
                 showShell("menu");
                 return;
             }
+
+            loginVerifyCount++;
+            // Aguarda até aproximadamente 16 segundos. Durante esse período não mostra erro.
+            if(loginVerifyCount<15){
+                siapWeb.postDelayed(()->verifyLoginAfterSubmit(),1000);
+                return;
+            }
+
+            // Só após várias verificações com o formulário ainda presente considera a tentativa rejeitada.
             loginSubmitted=false;
+            loginCheckPending=false;
+            loginVerifyCount=0;
             captchaAfterFailure=true;
             loginAttempts++;
             showShell("captcha");
@@ -92,11 +117,19 @@ if old_submit not in s:
     raise SystemExit('Bloco de envio do captcha não encontrado')
 s = s.replace(old_submit, new_submit, 1)
 
-# Reinicia também o verificador quando inicia um novo login.
+# Reinicia o verificador ao começar/atualizar/cancelar uma tentativa.
 s = s.replace(
     '        loginAttempts=0; loginSubmitted=false; captchaAfterFailure=false; showShell("captcha"); siapWeb.loadUrl(LOGIN_URL);',
-    '        loginAttempts=0; loginSubmitted=false; loginCheckPending=false; captchaAfterFailure=false; showShell("captcha"); siapWeb.loadUrl(LOGIN_URL);'
+    '        loginAttempts=0; loginSubmitted=false; loginCheckPending=false; loginVerifyCount=0; captchaAfterFailure=false; showShell("captcha"); siapWeb.loadUrl(LOGIN_URL);'
+)
+s = s.replace(
+    '@JavascriptInterface public void refreshCaptcha(){runOnUiThread(()->{loginSubmitted=false;siapWeb.reload();});}',
+    '@JavascriptInterface public void refreshCaptcha(){runOnUiThread(()->{loginSubmitted=false;loginCheckPending=false;loginVerifyCount=0;siapWeb.reload();});}'
+)
+s = s.replace(
+    '@JavascriptInterface public void cancelLogin(){runOnUiThread(()->{loginSubmitted=false;siapWeb.stopLoading();});}',
+    '@JavascriptInterface public void cancelLogin(){runOnUiThread(()->{loginSubmitted=false;loginCheckPending=false;loginVerifyCount=0;siapWeb.stopLoading();});}'
 )
 
 p.write_text(s, encoding='utf-8')
-print('SIAP login patch aplicado com sucesso')
+print('SIAP login patch isolado v2 aplicado com sucesso')
