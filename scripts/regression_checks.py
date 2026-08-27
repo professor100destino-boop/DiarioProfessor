@@ -20,7 +20,8 @@ def require(path,*tokens):
 
 index=require('index.html',
     'backup-migration.js','update-app.js','attendance-pdf-fix.js','advertencias-print.js',
-    'academic-students-v2.js','academic-roster-v2.js','planning-execute.js','app-lifecycle.js','siap-integracao.js')
+    'academic-students-v2.js','academic-roster-v2.js','planning-execute.js','app-lifecycle.js','siap-integracao.js',
+    'private-school-import.js')
 
 backup=require('backup-migration.js',
     'professorControlExportBackup','professorControlChooseBackup','professorControlBackupForExit',
@@ -39,10 +40,11 @@ sw=read('sw.js')
 sw2=read('service-worker.js')
 if sw!=sw2:
     errors.append('sw.js e service-worker.js estão diferentes')
-for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','academic-students-v2.js','parts/part11.txt'):
+for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','academic-students-v2.js','private-school-import.js','parts/part11.txt'):
     if token not in sw:
         errors.append(f'sw.js: faltando cache de {token}')
 
+require('private-school-import.js','extractSaec','importSaecStudents','Rela[cç][aã]o de Notas Por Disciplina','SAE+C','turmaBaseDoVinculo','mediasBimestraisPorVinculo')
 require('scripts/patch_backup_chooser.py','chooseBackupLocationInternal','saveBackupQuickInternal','@JavascriptInterface public boolean saveBackupQuick')
 require('scripts/patch_print_advertencias.py','printHtmlInternal','@JavascriptInterface public void printHtml')
 require('scripts/patch_app_lifecycle.py','professorControlBackupForExit')
@@ -57,7 +59,7 @@ critical_files=[
     'attendance-pdf-fix.js','advertencias.js','advertencias-print.js','activities-quick-mark.js',
     'academic-data-v2.js','academic-admin-v2.js','academic-students-v2.js','academic-roster-v2.js',
     'academic-reports-v2.js','academic-dashboard-v2.js','planning-execute.js','horarios.js','siap-integracao.js',
-    'recovery-transfer.js','update-app.js','siap-remoto.html'
+    'recovery-transfer.js','update-app.js','siap-remoto.html','private-school-import.js'
 ]
 for f in critical_files:
     read(f)
