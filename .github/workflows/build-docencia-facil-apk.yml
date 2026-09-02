@@ -1,9 +1,18 @@
 name: Build Docencia Facil Permanente APK — emergência nativa
 
-# A base permanente NÃO é recompilada em atualizações normais.
-# Este fluxo fica manual apenas para alguma mudança Android realmente indispensável.
+# Atualizações web normais NÃO recompilam APK.
+# O build automático só roda quando arquivos nativos/emergenciais abaixo são alterados.
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'android-app/app/build.gradle'
+      - 'scripts/patch_app_lifecycle.py'
+      - 'scripts/patch_webview_interaction.py'
+      - 'scripts/patch_backup_chooser.py'
+      - 'scripts/patch_print_advertencias.py'
+      - 'scripts/patch_siap_login.py'
+      - 'scripts/patch_remote_siap_permanent.py'
 
 permissions:
   contents: write
@@ -35,6 +44,8 @@ jobs:
         run: python3 scripts/patch_siap_login.py
       - name: Add permanent remote SIAP bridge
         run: python3 scripts/patch_remote_siap_permanent.py
+      - name: Guarantee Professor Control WebView interaction
+        run: python3 scripts/patch_webview_interaction.py
       - name: Check essential features before build
         run: python3 scripts/regression_checks.py
       - name: Build APK
