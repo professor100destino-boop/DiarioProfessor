@@ -21,7 +21,7 @@ def require(path,*tokens):
 index=require('index.html',
     'backup-migration.js','update-app.js','attendance-pdf-fix.js','advertencias-print.js','advertencias-edit.js','advertencias-aluno-report.js',
     'academic-students-v2.js','academic-roster-v2.js','planning-execute.js','app-lifecycle.js','siap-integracao.js',
-    'private-school-import.js','login-alternative.js')
+    'private-school-import.js')
 if 'view-state.js' in index:
     errors.append('index.html: view-state.js não deve voltar ao carregamento enquanto o login está em recuperação')
 
@@ -42,31 +42,35 @@ sw=read('sw.js')
 sw2=read('service-worker.js')
 if sw!=sw2:
     errors.append('sw.js e service-worker.js estão diferentes')
-for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','academic-students-v2.js','private-school-import.js','advertencias-edit.js','advertencias-aluno-report.js','login-alternative.js','parts/part11.txt'):
+for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','academic-students-v2.js','private-school-import.js','advertencias-edit.js','advertencias-aluno-report.js','parts/part11.txt'):
     if token not in sw:
         errors.append(f'sw.js: faltando cache de {token}')
 if 'view-state.js' in sw:
     errors.append('sw.js: view-state.js não deve estar no cache durante recuperação do login')
 
-require('login-alternative.js','Entrar por acesso alternativo','Usar teclado interno','securityCheckPassword','professorControlAlternativeLogin')
 require('advertencias-edit.js','authorizeEdit','securityCheckPassword','Salvar alterações','editarAdvertencia','atualizadoEm')
 require('advertencias-aluno-report.js','Relatório de advertências por aluno','Imprimir / Salvar em PDF','htmlRelatorioAluno','printHtml')
 require('private-school-import.js','extractSaec','importSaecStudents','Rela[cç][aã]o de Notas Por Disciplina','SAE+C','turmaBaseDoVinculo','mediasBimestraisPorVinculo')
 require('scripts/patch_backup_chooser.py','chooseBackupLocationInternal','saveBackupQuickInternal','@JavascriptInterface public boolean saveBackupQuick')
 require('scripts/patch_print_advertencias.py','printHtmlInternal','@JavascriptInterface public void printHtml')
-require('scripts/patch_app_lifecycle.py','professorControlBackupForExit')
+
+lifecycle=require('scripts/patch_app_lifecycle.py','professorControlBackupForExit','Nunca restaura uiWebState','siapWebState')
+if 'uiWeb.restoreState' in lifecycle:
+    errors.append('patch_app_lifecycle.py: Professor Control não pode restaurar uiWebState congelado')
+
+require('scripts/patch_webview_interaction.py','ensureProfessorWebInteractive','setClickable(true)','setFocusableInTouchMode(true)','bringToFront','requestFocus')
 require('scripts/patch_siap_login.py','verifyLoginAfterSubmit')
 require('scripts/patch_remote_siap_permanent.py','showRemoteSiap','siapEvalRemoteInternal','siapFillCredentialsInternal','remoteSiapMode')
 require('siap-remoto.html','onSiapPageFinished','siapFillCredentials','siapEval','Aguardando o SIAP confirmar a entrada','atualizável sem reinstalar o aplicativo')
 
 require('android-app/app/src/main/AndroidManifest.xml','android.permission.INTERNET','.MainActivity','android:label="Docência Fácil"')
-require('android-app/app/build.gradle',"applicationId 'br.com.professor100destino.docenciafacil.permanente'","versionName '3.0.0'")
+require('android-app/app/build.gradle',"applicationId 'br.com.professor100destino.docenciafacil.permanente'","versionName '3.0.1'","versionCode 301")
 
 critical_files=[
     'attendance-pdf-fix.js','advertencias.js','advertencias-print.js','advertencias-edit.js','advertencias-aluno-report.js','activities-quick-mark.js',
     'academic-data-v2.js','academic-admin-v2.js','academic-students-v2.js','academic-roster-v2.js',
     'academic-reports-v2.js','academic-dashboard-v2.js','planning-execute.js','horarios.js','siap-integracao.js',
-    'recovery-transfer.js','update-app.js','siap-remoto.html','private-school-import.js','login-alternative.js'
+    'recovery-transfer.js','update-app.js','siap-remoto.html','private-school-import.js'
 ]
 for f in critical_files:
     read(f)
@@ -76,4 +80,4 @@ if errors:
     for e in errors:
         print(' -',e)
     sys.exit(1)
-print('REGRESSION CHECK: OK — login alternativo ativo e funções essenciais preservadas')
+print('REGRESSION CHECK: OK — base permanente preserva dados e garante WebView interativa')
