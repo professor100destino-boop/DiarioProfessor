@@ -73,6 +73,8 @@ uch;
   border-radius:28px;
   padding:28px;
   box-shadow:0 30px 80px rgba(0,0,0,.35);
+  position:relative;
+  z-index:5001;
 }
 .auth-logo{
   width:70px;height:70px;border-radius:22px;
@@ -86,17 +88,36 @@ uch;
   width:100%;box-sizing:border-box;
   padding:15px 16px;border:1px solid #cbd5e1;border-radius:14px;
   margin-bottom:12px;font-size:17px;
+  position:relative;
+  z-index:5002;
+  pointer-events:auto !important;
+  touch-action:manipulation !important;
+  -webkit-user-select:text !important;
+  user-select:text !important;
 }
 .auth-card button{
   width:100%;border:0;border-radius:14px;padding:14px 16px;
   background:linear-gradient(135deg,#0b7d3f,#1d9f58);
   color:#fff;font-weight:800;font-size:17px;
+  position:relative;
+  z-index:5002;
+  pointer-events:auto !important;
+  touch-action:manipulation !important;
 }
 .auth-error{color:#b42318;font-weight:700;min-height:20px;margin-top:10px}
 .security-warning{
   background:#fff7ed;border:1px solid #fdba74;color:#9a3412;
   border-radius:16px;padding:14px 16px;line-height:1.45;margin:12px 0;
 }
+#authAltBtn{margin-top:10px;background:#1d4ed8}
+#authKeyboardBtn{margin-top:8px;background:#475569}
+#authKeyboardBox{margin-top:10px;padding:10px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc}
+#authKeyboardDisplay{height:42px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;display:flex;align-items:center;padding:0 12px;margin-bottom:8px;font-weight:800;letter-spacing:2px;color:#334155}
+#authKeyboardKeys{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}
+#authKeyboardKeys button{padding:8px 2px;background:#e2e8f0;color:#0f172a;font-size:14px}
+#authKeyboardActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+#authKeyboardActions button{padding:10px 4px;background:#475569;font-size:14px}
+#authKeyboardActions #authKeyboardEnter{background:#15803d}
 </style>
 
 
@@ -181,9 +202,82 @@ uch;
     <input id="authPass" type="password" inputmode="text" autocomplete="current-password" placeholder="Senha">
     <input id="authPass2" class="hidden" type="password" inputmode="text" autocomplete="new-password" placeholder="Repita a senha">
     <button id="authBtn">Entrar</button>
+    <button id="authAltBtn" type="button">Entrar por acesso alternativo</button>
+    <button id="authKeyboardBtn" type="button">⌨️ Usar teclado interno</button>
+    <div id="authKeyboardBox" class="hidden">
+      <div id="authKeyboardDisplay">Digite pela tela</div>
+      <div id="authKeyboardKeys"></div>
+      <div id="authKeyboardActions">
+        <button id="authKeyboardShift" type="button">Maiúsculas</button>
+        <button id="authKeyboardBack" type="button">⌫ Apagar</button>
+        <button id="authKeyboardEnter" type="button">Entrar</button>
+      </div>
+    </div>
     <div id="authError" class="auth-error"></div>
   </div>
 </div>
+<script>
+(function(){
+  try{document.body.classList.remove('menu-open')}catch(e){}
+  var pass=document.getElementById('authPass');
+  var pass2=document.getElementById('authPass2');
+  var main=document.getElementById('authBtn');
+  var alt=document.getElementById('authAltBtn');
+  var kbBtn=document.getElementById('authKeyboardBtn');
+  var box=document.getElementById('authKeyboardBox');
+  var display=document.getElementById('authKeyboardDisplay');
+  var keys=document.getElementById('authKeyboardKeys');
+  var shift=document.getElementById('authKeyboardShift');
+  var back=document.getElementById('authKeyboardBack');
+  var enter=document.getElementById('authKeyboardEnter');
+  var value='';
+  var upper=false;
+
+  function submitValue(v){
+    if(pass){pass.value=v;pass.dispatchEvent(new Event('input',{bubbles:true}));pass.dispatchEvent(new Event('change',{bubbles:true}))}
+    if(main)main.click();
+  }
+  function render(){
+    if(display)display.textContent=value?('•'.repeat(value.length)):'Digite pela tela';
+    if(!keys)return;
+    keys.innerHTML='';
+    var chars='1234567890qwertyuiopasdfghjklçzxcvbnmáéíóúãõ@!#$_-*.';
+    Array.from(chars).forEach(function(raw){
+      var c=upper?raw.toUpperCase():raw;
+      var b=document.createElement('button');
+      b.type='button';b.textContent=c;
+      b.onclick=function(){value+=c;render()};
+      keys.appendChild(b);
+    });
+  }
+  if(alt)alt.onclick=function(){
+    var v=window.prompt('Digite a mesma senha do Professor Control:');
+    if(v===null)return;
+    submitValue(v);
+  };
+  if(kbBtn)kbBtn.onclick=function(){
+    if(!box)return;
+    box.classList.toggle('hidden');
+    render();
+  };
+  if(shift)shift.onclick=function(){upper=!upper;render()};
+  if(back)back.onclick=function(){value=value.slice(0,-1);render()};
+  if(enter)enter.onclick=function(){submitValue(value)};
+  if(pass){
+    pass.disabled=false;pass.readOnly=false;
+    pass.addEventListener('pointerdown',function(){try{pass.focus()}catch(e){}},{passive:true});
+    pass.addEventListener('click',function(){try{pass.focus()}catch(e){}});
+  }
+  setTimeout(function(){
+    if(pass2&&!pass2.classList.contains('hidden')){
+      if(alt)alt.style.display='none';
+      if(kbBtn)kbBtn.style.display='none';
+      if(box)box.classList.add('hidden');
+    }
+  },900);
+  render();
+})();
+</script>
 
 <div id="sidebarOverlay" class="sidebar-overlay"></div>
   <div class="app-shell">
