@@ -20,10 +20,13 @@ manifest.write_text(m,encoding='utf-8')
 
 main=Path('android-app/app/src/main/java/br/com/professor100destino/docenciafacil/MainActivity.java')
 j=main.read_text(encoding='utf-8')
-j=j.replace('private static final String PROFESSOR_URL="https://professor100destino-boop.github.io/DiarioProfessor/";',
-            'private static final String PROFESSOR_URL="https://professor100destino-boop.github.io/DiarioProfessor/v4.html";')
+old='private static final String PROFESSOR_URL="https://professor100destino-boop.github.io/DiarioProfessor/";'
+new='private static final String PROFESSOR_URL="https://professor100destino-boop.github.io/DiarioProfessor/v4.html";\n    private static final String SIAP_REMOTE_URL="https://professor100destino-boop.github.io/DiarioProfessor/siap-remoto.html";'
+j=j.replace(old,new)
 if 'DiarioProfessor/v4.html' not in j:
     raise SystemExit('Falha ao apontar WebView para v4.html')
+if 'private static final String SIAP_REMOTE_URL=' not in j:
+    raise SystemExit('Falha ao definir URL remota do SIAP na versão 4.0')
 main.write_text(j,encoding='utf-8')
 
-print('Patch paralelo 4.0 aplicado: pacote novo, nome novo e página sem login')
+print('Patch paralelo 4.0 aplicado: pacote novo, nome novo, SIAP remoto e página sem login')
