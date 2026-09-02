@@ -3,8 +3,14 @@
   const MAX_AGE=24*60*60*1000;
   let closing=false;
   let timer=null;
+  let restored=false;
 
   const $=s=>document.querySelector(s);
+
+  function authLocked(){
+    const lock=$('#authLock');
+    return !!(lock && !lock.classList.contains('hidden'));
+  }
 
   function activeView(){
     const el=$('.view.active');
@@ -12,13 +18,14 @@
   }
 
   function capture(){
-    if(closing)return;
+    if(closing||authLocked())return;
     try{
       const view=activeView();
       const root=$('#view-'+view);
       const controls={};
       if(root){
         root.querySelectorAll('select[id],input[id],textarea[id]').forEach(el=>{
+          if(el.closest('#authLock'))return;
           const type=(el.type||'').toLowerCase();
           if(type==='password'||type==='file'||type==='button'||type==='submit')return;
           if(type==='checkbox'||type==='radio')controls[el.id]=!!el.checked;
@@ -27,13 +34,13 @@
       }
 
       const state={
-        version:1,
+        version:2,
         savedAt:Date.now(),
         view,
         scrollTop:document.scrollingElement?.scrollTop||window.scrollY||0,
         sidebarScroll:$('#sidebar')?.scrollTop||0,
         controls,
-        checkedValues:root?[...root.querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.value):[]
+        checkedValues:root?[...root.querySelectorAll('input[type="checkbox"]:checked')].filter(x=>!x.closest('#authLock')).map(x=>x.value):[]
       };
 
       try{
@@ -54,6 +61,7 @@
   }
 
   function scheduleCapture(delay=120){
+    if(authLocked())return;
     clearTimeout(timer);
     timer=setTimeout(capture,delay);
   }
@@ -82,12 +90,14 @@
   }
 
   function setControl(id,value,attempt=0){
+    if(authLocked())return;
     const el=document.getElementById(id);
-    if(!el){
-      if(attempt<24)setTimeout(()=>setControl(id,value,attempt+1),100);
+    if(!el||el.closest('#authLock')){
+      if(!el&&attempt<24)setTimeout(()=>setControl(id,value,attempt+1),100);
       return;
     }
     const type=(el.type||'').toLowerCase();
+    if(type==='password'||type==='file')return;
     if(type==='checkbox'||type==='radio'){
       el.checked=!!value;
       return;
@@ -113,9 +123,10 @@
 
     if(Array.isArray(state.checkedValues)&&state.checkedValues.length){
       setTimeout(()=>{
+        if(authLocked())return;
         const root=$('#view-'+state.view);if(!root)return;
         const wanted=new Set(state.checkedValues.map(String));
-        root.querySelectorAll('input[type="checkbox"]').forEach(ch=>{ch.checked=wanted.has(String(ch.value))});
+        root.querySelectorAll('input[type="checkbox"]').forEach(ch=>{if(!ch.closest('#authLock'))ch.checked=wanted.has(String(ch.value))});
       },700);
     }
   }
@@ -123,6 +134,7 @@
   function restorePlanning(state){
     if(!state.planId||typeof window.abrirPlanejamento!=='function')return;
     setTimeout(()=>{
+      if(authLocked())return;
       try{window.abrirPlanejamento(state.planId,state.planAula||null,false)}catch(e){}
     },900);
   }
@@ -130,6 +142,7 @@
   function restoreFrequencyDraft(state){
     if(state.view!=='frequencia'||!state.freqDraft)return;
     setTimeout(()=>{
+      if(authLocked())return;
       try{
         if(typeof currentFreq!=='undefined')currentFreq={...state.freqDraft};
         document.querySelectorAll('.seg[data-aid]').forEach(seg=>{
@@ -141,12 +154,15 @@
     },1100);
   }
 
-  function restore(){
+  function doRestore(){
+    if(restored||authLocked())return false;
     const state=readState();
-    if(!state)return;
+    restored=true;
+    if(!state)return true;
 
     let tries=0;
     const attempt=()=>{
+      if(authLocked())return;
       tries++;
       const ok=state.view==='dashboard'?true:openView(state.view);
       if(!ok&&tries<30){setTimeout(attempt,100);return}
@@ -156,15 +172,32 @@
       restoreFrequencyDraft(state);
 
       setTimeout(()=>{
+        if(authLocked())return;
         try{
           const y=Number(state.scrollTop)||0;
-          document.scrollingElement?.scrollTo?.({top:y,left:0,behavior:'auto'});
           if(document.scrollingElement)document.scrollingElement.scrollTop=y;
           const sb=$('#sidebar');if(sb)sb.scrollTop=Number(state.sidebarScroll)||0;
         }catch(e){}
       },1250);
     };
     setTimeout(attempt,280);
+    return true;
+  }
+
+  function waitForUnlock(){
+    if(!authLocked()){
+      doRestore();
+      return;
+    }
+    const lock=$('#authLock');
+    if(!lock)return;
+    const obs=new MutationObserver(()=>{
+      if(lock.classList.contains('hidden')){
+        obs.disconnect();
+        setTimeout(doRestore,120);
+      }
+    });
+    obs.observe(lock,{attributes:true,attributeFilter:['class']});
   }
 
   document.addEventListener('visibilitychange',()=>{
@@ -172,19 +205,20 @@
   });
   window.addEventListener('pagehide',capture);
   window.addEventListener('beforeunload',capture);
-  document.addEventListener('change',()=>scheduleCapture(80),true);
-  document.addEventListener('input',()=>scheduleCapture(250),true);
+  document.addEventListener('change',e=>{if(!e.target?.closest?.('#authLock'))scheduleCapture(80)},true);
+  document.addEventListener('input',e=>{if(!e.target?.closest?.('#authLock'))scheduleCapture(250)},true);
   document.addEventListener('click',e=>{
     if(e.target?.closest?.('#closeAppNav')){
       closing=true;
       try{localStorage.removeItem(STATE_KEY)}catch(err){}
       return;
     }
+    if(e.target?.closest?.('#authLock'))return;
     if(e.target?.closest?.('.nav-item,[data-go],.lesson-btn'))scheduleCapture(180);
   },true);
-  window.addEventListener('scroll',()=>scheduleCapture(180),{passive:true});
+  window.addEventListener('scroll',()=>{if(!authLocked())scheduleCapture(180)},{passive:true});
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);else restore();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',waitForUnlock);else waitForUnlock();
 
   window.professorControlSaveUiState=capture;
   window.professorControlClearUiState=()=>{try{localStorage.removeItem(STATE_KEY)}catch(e){}};
