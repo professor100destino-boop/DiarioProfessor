@@ -1,0 +1,95 @@
+name: Build Docencia Facil 4.0 Paralelo
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'v4.html'
+      - 'v4-no-login.js'
+      - 'scripts/patch_v4_parallel.py'
+      - 'scripts/regression_checks_v4.py'
+      - '.github/workflows/build-docencia-facil-v4.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-v4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Check stable base before creating 4.0
+        run: python3 scripts/regression_checks.py
+
+      - name: Create parallel 4.0 package
+        run: python3 scripts/patch_v4_parallel.py
+
+      - name: Add native backup location chooser
+        run: python3 scripts/patch_backup_chooser.py
+
+      - name: Add native advertencia printing
+        run: python3 scripts/patch_print_advertencias.py
+
+      - name: Keep app lifecycle safe
+        run: python3 scripts/patch_app_lifecycle.py
+
+      - name: Keep legacy SIAP compatibility
+        run: python3 scripts/patch_siap_login.py
+
+      - name: Add permanent remote SIAP bridge
+        run: python3 scripts/patch_remote_siap_permanent.py
+
+      - name: Guarantee WebView interaction
+        run: python3 scripts/patch_webview_interaction.py
+
+      - name: Check 4.0 protections
+        run: python3 scripts/regression_checks_v4.py
+
+      - name: Restore stable 4.0 signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: docencia-facil-v4-keystore-v1
+
+      - name: Create signing key on first 4.0 build
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -dname "CN=Docencia Facil 4.0,O=Professor Control,C=BR" \
+              -keyalg RSA -keysize 2048 -validity 10000
+          fi
+
+      - name: Build 4.0 APK
+        working-directory: android-app
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload 4.0 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Docencia-Facil-4.0
+          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish 4.0 APK in repository
+        run: |
+          mkdir -p apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-4.0.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apk/Docencia-Facil-4.0.apk
+          git commit -m "Publica Docencia Facil 4.0 paralelo" || exit 0
+          git push
