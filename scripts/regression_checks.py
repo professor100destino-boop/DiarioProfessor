@@ -20,7 +20,7 @@ def require(path,*tokens):
 
 index=require('index.html',
     'backup-migration.js','update-app.js','attendance-pdf-fix.js','advertencias-print.js','advertencias-edit.js','advertencias-aluno-report.js',
-    'academic-students-v2.js','academic-roster-v2.js','planning-execute.js','app-lifecycle.js','siap-integracao.js',
+    'academic-students-v2.js','academic-roster-v2.js','planning-execute.js','app-lifecycle.js','view-state.js','siap-integracao.js',
     'private-school-import.js')
 
 backup=require('backup-migration.js',
@@ -40,12 +40,13 @@ sw=read('sw.js')
 sw2=read('service-worker.js')
 if sw!=sw2:
     errors.append('sw.js e service-worker.js estão diferentes')
-for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','academic-students-v2.js','private-school-import.js','advertencias-edit.js','advertencias-aluno-report.js','parts/part11.txt'):
+for token in ('backup-migration.js','update-app.js','attendance-pdf-fix.js','academic-students-v2.js','private-school-import.js','advertencias-edit.js','advertencias-aluno-report.js','view-state.js','parts/part11.txt'):
     if token not in sw:
         errors.append(f'sw.js: faltando cache de {token}')
 
 require('advertencias-edit.js','authorizeEdit','securityCheckPassword','Salvar alterações','editarAdvertencia','atualizadoEm')
 require('advertencias-aluno-report.js','Relatório de advertências por aluno','Imprimir / Salvar em PDF','htmlRelatorioAluno','printHtml')
+require('view-state.js','professor_control_ui_state_v1','visibilitychange','pagehide','scrollTop','freqDraft','professorControlSaveUiState')
 require('private-school-import.js','extractSaec','importSaecStudents','Rela[cç][aã]o de Notas Por Disciplina','SAE+C','turmaBaseDoVinculo','mediasBimestraisPorVinculo')
 require('scripts/patch_backup_chooser.py','chooseBackupLocationInternal','saveBackupQuickInternal','@JavascriptInterface public boolean saveBackupQuick')
 require('scripts/patch_print_advertencias.py','printHtmlInternal','@JavascriptInterface public void printHtml')
@@ -61,7 +62,7 @@ critical_files=[
     'attendance-pdf-fix.js','advertencias.js','advertencias-print.js','advertencias-edit.js','advertencias-aluno-report.js','activities-quick-mark.js',
     'academic-data-v2.js','academic-admin-v2.js','academic-students-v2.js','academic-roster-v2.js',
     'academic-reports-v2.js','academic-dashboard-v2.js','planning-execute.js','horarios.js','siap-integracao.js',
-    'recovery-transfer.js','update-app.js','siap-remoto.html','private-school-import.js'
+    'recovery-transfer.js','update-app.js','view-state.js','siap-remoto.html','private-school-import.js'
 ]
 for f in critical_files:
     read(f)
