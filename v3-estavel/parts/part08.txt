@@ -1,0 +1,50 @@
+i.test(k));
+    const keyNum=keys.find(k=>/ord|n[uú]m|cham/i.test(k));
+    const keyM1=keys.find(k=>/1.*bim|1º.*bim|primeiro.*bim/i.test(k));
+    const keyM2=keys.find(k=>/2.*bim|2º.*bim|segundo.*bim/i.test(k));
+
+    if(!keyNome){alert('Não encontrei uma coluna de nome dos alunos.');e.target.value='';return}
+
+    let novos=0, atualizados=0;
+    for(const row of rows){
+      const nome=String(row[keyNome]||'').trim();
+      if(!nome)continue;
+      const matricula=String(keyMat?row[keyMat]:'').trim();
+      let aluno=db.alunos.find(a=>a.turmaId===tid && ((matricula&&a.matricula===matricula) || a.nome.toUpperCase()===nome.toUpperCase()));
+      if(!aluno){
+        aluno={id:id(),turmaId:tid,numero:String(keyNum?row[keyNum]:'').trim(),nome,matricula};
+        db.alunos.push(aluno);novos++;
+      }else{atualizados++}
+      db.mediasBimestrais[aluno.id]??={};
+      const parseN=v=>{
+        if(v===null||v===undefined||v==='')return null;
+        const n=Number(String(v).replace(',','.'));
+        return Number.isFinite(n)?n:null;
+      };
+      const m1=keyM1?parseN(row[keyM1]):null;
+      const m2=keyM2?parseN(row[keyM2]):null;
+      if(m1!==null)db.mediasBimestrais[aluno.id]['1º Bimestre']=m1;
+      if(m2!==null)db.mediasBimestrais[aluno.id]['2º Bimestre']=m2;
+    }
+    localStorage.setItem(KEY,JSON.stringify(db));
+    renderAll();
+    toast(`${novos} alunos importados`);
+  }catch(err){
+    console.error(err);
+    alert(err.message||'Erro ao importar arquivo');
+  }finally{
+    e.target.value='';
+  }
+};
+
+function renderFreq(){const tid=$('#freqTurma')?.value;if(!$('#freqData').value)$('#freqData').value=todayISO();const data=$('#freqData').value;const alunos=db.alunos.filter(a=>a.turmaId===tid);currentFreq={};for(const a of alunos){const old=db.frequencias.find(f=>f.alunoId===a.id&&f.data===data);currentFreq[a.id]=old?.status||'P'}$('#freqList').innerHTML=alunos.length?alunos.map(a=>`<div class=freq-row><span><b>${esc(a.numero||'')}</b> ${esc(a.nome)}</span><div class=seg data-aid="${a.id}">${[['P','Presente'],['F','Falta'],['J','Justificada'],['A','Atraso']].map(([v,l])=>`<button data-status="${v}" class="${currentFreq[a.id]===v?'active':''}">${l}</button>`).join('')}</div></div>`).join(''):'<p class=muted>Nenhum aluno nesta turma.</p>';$$('.seg button').forEach(b=>b.onclick=()=>{const seg=b.parentElement;currentFreq[seg.dataset.aid]=b.dataset.status;[...seg.children].forEach(x=>x.classList.toggle('active',x===b))})}
+$('#freqTurma').onchange=renderFreq;$('#freqData').onchange=renderFreq;$('#todosPresentesBtn').onclick=()=>{$$('.seg').forEach(seg=>{currentFreq[seg.dataset.aid]='P';[...seg.children].forEach(b=>b.classList.toggle('active',b.dataset.status==='P'))})};$('#salvarFreqBtn').onclick=()=>{const data=$('#freqData').value,tid=$('#freqTurma').value;const aids=db.alunos.filter(a=>a.turmaId===tid).map(a=>a.id);db.frequencias=db.frequencias.filter(f=>!(aids.includes(f.alunoId)&&f.data===data));for(const [alunoId,status] of Object.entries(currentFreq))db.frequencias.push({alunoId,data,status});save();toast('Chamada salva')};
+function avaliacoesTurma(tid,bim){return db.avaliacoes.filter(a=>a.turmaId===tid&&a.bimestre===bim)}
+function calcAluno(alunoId,tid=$('#notasTurma')?.value,bim=$('#notasBimestre')?.value){if(!tid){const a=db.alunos.find(x=>x.id===alunoId);tid=a?.turmaId}const av=avaliacoesTurma(tid,bim||'3º Bimestre'),ativ=av.filter(a=>a.tipo==='atividade'),provas=av.filter(a=>a.tipo==='prova'),n=db.notas[alunoId]||{};const soma=ativ.reduce((s,a)=>s+(Number(n[a.id])||0),0);const atividadeMedia=ativ.length?soma/ativ.length:null;const provasComNota=provas.filter(p=>n[p.id]!==undefined&&n[p.id]!=='');let total=0,div=0;if(atividadeMedia!==null){total+=atividadeMedia;div++}provasComNota.forEach(p=>{total+=Number(n[p.id])||0;div++});return{atividadeMedia,media:div?total/div:null}}
+
+function renderAtividades(){const tid=$('#atividadesTurma')?.value,bim=$('#atividadesBimestre')?.value,alunos=db.alunos.filter(a=>a.turmaId===tid),ativ=avaliacoesTurma(tid,bim).filter(a=>a.tipo==='atividade');if(!alunos.length){$('#atividadesTable').innerHTML='<p class=muted>Nenhum aluno nesta turma.</p>';return}if(!ativ.length){$('#atividadesTable').innerHTML='<p class=muted>Nenhuma atividade cadastrada. Clique em + Nova atividade.</p>';return}const heads=ativ.map(a=>`<th>${esc(a.nome)}<br><small>Valor ${a.valor}</small></th>`).join('');$('#atividadesTable').innerHTML=`<table><thead><tr><th>Aluno</th>${heads}<th>Média das Atividades</th></tr></thead><tbody>${alunos.map(a=>{const n=db.notas[a.id]||{},c=calcAluno(a.id,tid,bim);return `<tr><td><b>${esc(a.nome)}</b></td>${ativ.map(v=>`<td><input type=number min=0 max="${v.valor}" step=.1 data-ativ-aluno="${a.id}" data-ativ-av="${v.id}" value="${n[v.id]??''}"></td>`).join('')}<td><b>${c.atividadeMedia===null?'—':c.atividadeMedia.toFixed(1)}</b></td></tr>`}).join('')}</tbody></table>`;$$('[data-ativ-aluno]').forEach(i=>i.onchange=()=>{db.notas[i.dataset.ativAluno]??={};db.notas[i.dataset.ativAluno][i.dataset.ativAv]=i.value;localStorage.setItem(KEY,JSON.stringify(db));renderAtividades();renderNotas();renderDashboard()})}
+
+function renderNotas(){const tid=$('#notasTurma')?.value,bim=$('#notasBimestre')?.value,alunos=db.alunos.filter(a=>a.turmaId===tid),provas=avaliacoesTurma(tid,bim).filter(a=>a.tipo==='prova');if(!alunos.length){$('#notasTable').innerHTML='<p class=muted>Nenhum aluno nesta turma.</p>';return}const heads=['<th>Média Atividades<br><small>vale 1 nota</small></th>',...provas.map(a=>`<th>${esc(a.nome)}<br><small>Prova • ${a.valor}</small></th>`),'<th>Média Final</th>'].join('');$('#notasTable').innerHTML=`<table><thead><tr><th>Aluno</th>${heads}</tr></thead><tbody>${alunos.map(a=>{const n=db.notas[a.id]||{},c=calcAluno(a.id,tid,bim);return `<tr><td><b>${esc(a.nome)}</b></td><td><b>${c.atividadeMedia===null?'—':c.atividadeMedia.toFixed(1)}</b></td>${provas.map(v=>`<td><input type=number min=0 max="${v.valor}" step=.1 data-prova-aluno="${a.id}" data-prova-av="${v.id}" value="${n[v.id]??''}"></td>`).join('')}<td><span class="badge ${c.media===null?'warn':c.media>=Number(db.config.mediaMin||6)?'ok':'bad'}">${c.media===null?'—':c.media.toFixed(1)}</span></td></tr>`}).join('')}</tbody></table>`;$$('[data-prova-aluno]').forEach(i=>i.onchange=()=>{db.notas[i.dataset.provaAluno]??={};db.notas[i.dataset.provaAluno][i.dataset.provaAv]=i.value;localStorage.setItem(KEY,JSON.stringify(db));renderNotas();renderDashboard()})}
+
+$('#atividadesTurma').onchange=renderAtividades;$('#atividadesBimestre').onchange=renderAtividades;$('#notasTurma').onchange=renderNotas;$('#notasBimestre').onchange=renderNotas;
+function addAvaliacao(tipo){const tid=tipo==='atividade'?$('#atividadesTurma').value:$('#notasTurma').value,bim=tipo==='atividade'?$('#atividadesBimestre').value:$('#notasBimestre').value;if(!tid)return toast('Crie uma turma primeiro');modal(tipo==='atividade'?'Nova atividade':'Nova prova',`<label>Nome<input id=mAvNome placeholder="${tipo==='atividade'?'At
