@@ -1,9 +1,13 @@
-name: Build Docencia Facil Permanente APK — emergência nativa
+name: Build Docencia Facil V3 Estavel
 
-# A base permanente NÃO é recompilada em atualizações normais.
-# Este fluxo fica manual apenas para alguma mudança Android realmente indispensável.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - v3-estavel-frozen
+    paths:
+      - '.github/workflows/build-docencia-facil-apk.yml'
+      - 'scripts/patch_v3_stable_build.py'
 
 permissions:
   contents: write
@@ -20,7 +24,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Restore signing key for emergency native build
+      - name: Restore signing key
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
@@ -35,22 +39,24 @@ jobs:
         run: python3 scripts/patch_siap_login.py
       - name: Add permanent remote SIAP bridge
         run: python3 scripts/patch_remote_siap_permanent.py
-      - name: Check essential features before build
+      - name: Check stable V3 before build
         run: python3 scripts/regression_checks.py
+      - name: Point APK only to frozen V3
+        run: python3 scripts/patch_v3_stable_build.py
       - name: Build APK
         working-directory: android-app
         run: gradle assembleDebug --stacktrace
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Docencia-Facil-Permanente-debug
+          name: Docencia-Facil-V3-Estavel
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publish permanent APK in repository
+      - name: Publish V3 stable APK in branch
         run: |
           mkdir -p apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-Permanente.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk apk/Docencia-Facil-V3-Estavel.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/Docencia-Facil-Permanente.apk
-          git commit -m "Publica APK base permanente do Docencia Facil" || exit 0
+          git add apk/Docencia-Facil-V3-Estavel.apk
+          git commit -m "[skip ci] Publica APK V3 estavel congelada" || exit 0
           git push
