@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'br.com.professor100destino.docenciafacil'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'br.com.professor100destino.docenciafacil.permanente'
+        minSdk 24
+        targetSdk 35
+        versionCode 300
+        versionName '3.0.0'
+    }
+}
+
+// Docência Fácil 3.0.0: base permanente. Atualizações normais são feitas dentro do app, sem reinstalar APK.

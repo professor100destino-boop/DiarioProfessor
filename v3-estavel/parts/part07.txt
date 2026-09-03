@@ -1,0 +1,165 @@
+/ Name: any alphabetic text in the row band between matrícula and 1º BIM column.
+        const nameParts=band
+          .filter(i=>i.x>=nameLeft && i.x<grade1X-3 && /[A-Za-zÁÀÃÂÉÊÍÓÔÕÚÇ]/i.test(i.text))
+          .sort((u,v)=>Math.abs(v.y-u.y)>1 ? v.y-u.y : u.x-v.x)
+          .map(i=>i.text)
+          .filter(t=>!/^(Cursando|Transferido|Aprovado|Reprovado)$/i.test(t))
+          .filter(t=>!/^(?:NOME|ALUNO|M[ÉE]DIAS?|1[º°o]?\s*BIM(?:ESTRE)?|2[º°o]?\s*BIM(?:ESTRE)?)$/i.test(String(t).trim()));
+        let nome=limparNomeAluno([...new Set(nameParts)].join(' '));
+
+        // Grade candidates by X position. The first two bimonthly cells are fixed columns.
+        const numeric=band.filter(i=>/^(?:\d{1,2}[,.]\d|--)$/.test(i.text));
+        const nearest=(target,minX,maxX)=>{
+          const arr=numeric.filter(i=>i.x>=minX && i.x<maxX).sort((u,v)=>Math.abs(u.x-target)-Math.abs(v.x-target));
+          return arr[0]?.text||'--';
+        };
+        const g1=nearest(grade1X, grade1X-35, grade2X-5);
+        const g2=nearest(grade2X, grade2X-28, grade3X-5);
+        const parseGrade=s=>s==='--'||!s?null:Number(s.replace(',','.'));
+
+        // Fallback for unusual x scaling: search numeric cells in x order after name area.
+        let media1=parseGrade(g1), media2=parseGrade(g2);
+        if(media1===null || Number.isNaN(media1)){
+          const vals=numeric.filter(i=>i.x>grade1X-45).sort((u,v)=>u.x-v.x).map(i=>i.text);
+          media1=parseGrade(vals[0]); media2=parseGrade(vals[1]);
+        }
+
+        // Strong validation: a valid name cannot be only a grade or punctuation.
+        if(!nome || /^\d+[,.]\d$/.test(nome)){
+          // search a slightly wider band only in the name column, useful for 2-line names
+          const wide=items.filter(i=>i.y<=yAbove+7 && i.y>=yBelow-7 && i.x>=nameLeft && i.x<grade1X-3 && /[A-Za-zÁÀÃÂÉÊÍÓÔÕÚÇ]/i.test(i.text));
+          nome=limparNomeAluno([...new Set(wide.sort((u,v)=>v.y-u.y||u.x-v.x).map(i=>i.text))].join(' '));
+        }
+
+        if(numero && nome && !/^\d+[,.]\d$/.test(nome)){
+          allRows.push({numero,matricula:a.text,nome,media1,media2});
+        }
+      }
+    }
+
+    const clean=metaText.replace(/\s+/g,' ');
+    const escolaMatch=clean.match(/(\d{6,10})\s*-\s*(ESCOLA[^]*?)(?=Ano Letivo|Composição|Professor|Disciplina|Turma|Turno|Carga Horária)/i);
+    const turmaMatch=clean.match(/Turma:\s*([A-Za-z0-9ºª -]+)/i);
+    const discMatch=clean.match(/Disciplina:\s*([^]*?)(?=Turma:|Turno:|Carga Horária|Série:)/i);
+    const serieMatch=clean.match(/Série:\s*([^]*?)(?=Turma:|Turno:|Carga Horária)/i);
+
+    // Deduplicate by matrícula, preferring the row with the longest valid name.
+    const byMat=new Map();
+    for(const r of allRows){
+      const old=byMat.get(r.matricula);
+      if(!old || r.nome.length>old.nome.length) byMat.set(r.matricula,r);
+    }
+
+    return{
+      escolaCodigo:escolaMatch?.[1]||'',
+      escolaNome:escolaMatch?.[2]?.trim()||'',
+      turma:turmaMatch?.[1]?.trim()||'',
+      disciplina:discMatch?.[1]?.trim()||'',
+      serie:serieMatch?.[1]?.trim()||'',
+      alunos:[...byMat.values()].sort((a,b)=>Number(a.numero)-Number(b.numero))
+    };
+  }catch(err){
+    console.error(err);
+    throw new Error('Não foi possível ler o PDF. Verifique a conexão com a internet e tente novamente.');
+  }
+}
+
+
+function limparNomeAluno(nome){
+  let n=String(nome||'').replace(/\s+/g,' ').trim();
+
+  // Remove fragments of the SIGE table header that can overlap the first student row.
+  n=n
+    .replace(/^(?:NOME\s+)?ALUNO\s+/i,'')
+    .replace(/^ALUNO\s*1[º°o]?\s*BIM(?:ESTRE)?\s*/i,'')
+    .replace(/^1[º°o]?\s*BIM(?:ESTRE)?\s*/i,'')
+    .replace(/^2[º°o]?\s*BIM(?:ESTRE)?\s*/i,'')
+    .replace(/^M[ÉE]DIAS?\s*/i,'')
+    .trim();
+
+  return n;
+}
+
+function importPdfStudents(parsed,tid){
+  let novos=0, atualizados=0, corrigidos=0, medias=0;
+  for(const r of parsed.alunos){
+    let aluno=db.alunos.find(a=>a.turmaId===tid && a.matricula===r.matricula);
+    if(!aluno){
+      aluno=db.alunos.find(a=>a.turmaId===tid && a.nome.toUpperCase()===r.nome.toUpperCase());
+    }
+    if(!aluno){
+      aluno={id:id(),turmaId:tid,numero:r.numero||'',nome:limparNomeAluno(r.nome),matricula:r.matricula||''};
+      db.alunos.push(aluno);
+      novos++;
+    }else{
+      const nomeLimpo=limparNomeAluno(r.nome); if(aluno.nome!==nomeLimpo){aluno.nome=nomeLimpo;corrigidos++}
+      if(r.numero) aluno.numero=r.numero;
+      if(r.matricula) aluno.matricula=r.matricula;
+      atualizados++;
+    }
+    db.mediasBimestrais[aluno.id]??={};
+    if(Number.isFinite(r.media1)){db.mediasBimestrais[aluno.id]['1º Bimestre']=r.media1;medias++}
+    if(Number.isFinite(r.media2)){db.mediasBimestrais[aluno.id]['2º Bimestre']=r.media2;medias++}
+  }
+  return{novos,atualizados,corrigidos,medias};
+}
+
+$('#importFile').onchange=async e=>{
+  const f=e.target.files[0],
+        eid=$('#alunosEscola').value,
+        tid=$('#alunosTurma').value;
+
+  if(!eid){toast('Selecione uma escola');e.target.value='';return}
+  if(!tid){toast('Selecione uma turma desta escola');e.target.value='';return}
+
+  const turmaSel=db.turmas.find(t=>t.id===tid);
+  if(!turmaSel||turmaSel.escolaId!==eid){
+    toast('A turma não pertence à escola selecionada');e.target.value='';return
+  }
+  if(!f)return;
+
+  try{
+    const lower=f.name.toLowerCase();
+
+    if(lower.endsWith('.pdf')){
+      toast('Lendo relatório do SIGE...');
+      const parsed=await extractSigeResumoFinal(f);
+
+      if(!parsed.alunos.length){
+        alert('O PDF foi lido, mas não consegui identificar a tabela de alunos. Use o relatório “Diário de Classe - Resumo Final”.');
+        e.target.value='';
+        return;
+      }
+
+      const escolaAtual=db.escolas.find(x=>x.id===eid);
+      const aviso=[
+        `Foram encontrados ${parsed.alunos.length} alunos.`,
+        parsed.escolaNome?`Escola no PDF: ${parsed.escolaNome}`:'',
+        parsed.turma?`Turma no PDF: ${parsed.turma}`:'',
+        parsed.disciplina?`Disciplina no PDF: ${parsed.disciplina}`:'',
+        '',
+        `Destino escolhido no sistema: ${escolaAtual?.nome||''} → ${turmaNome(turmaSel)}`,
+        '',
+        'Importar os alunos e as médias do 1º e 2º bimestres?'
+      ].filter(Boolean).join('\n');
+
+      if(!confirm(aviso)){e.target.value='';return}
+
+      const r=importPdfStudents(parsed,tid);
+      localStorage.setItem(KEY,JSON.stringify(db));
+      renderAll();
+      alert(`Importação concluída.\n\nNovos alunos: ${r.novos}\nAlunos já existentes atualizados: ${r.atualizados}\nNomes corrigidos: ${r.corrigidos}\nMédias bimestrais gravadas: ${r.medias}`);
+      e.target.value='';
+      return;
+    }
+
+    // Existing spreadsheet import
+    const ab=await f.arrayBuffer();
+    const wb=XLSX.read(ab,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    if(!rows.length){toast('Arquivo vazio');e.target.value='';return}
+
+    const keys=Object.keys(rows[0]);
+    const keyNome=keys.find(k=>/nome/i.test(k));
+    const keyMat=keys.find(k=>/matr/

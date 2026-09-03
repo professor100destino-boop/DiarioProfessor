@@ -1,0 +1,125 @@
+return;
+  db.escolas=db.escolas.filter(x=>x.id!==eid);save()
+};
+
+function renderTurmas(){const el=$('#turmasList');if(!db.turmas.length){el.innerHTML='<p class=muted>Nenhuma turma cadastrada. Cadastre uma escola e depois crie sua primeira turma.</p>';return}el.innerHTML=`<table><thead><tr><th>Escola</th><th>Série</th><th>Turma</th><th>Disciplina</th><th>Turno</th><th>Alunos</th><th></th></tr></thead><tbody>${db.turmas.map(t=>`<tr><td><b>${esc(escolaNome(escolaDaTurma(t)))}</b></td><td>${esc(t.serie)}</td><td>${esc(t.turma)}</td><td>${esc(t.disciplina)}</td><td>${esc(t.turno)}</td><td>${db.alunos.filter(a=>a.turmaId===t.id).length}</td><td><button class=link-btn onclick="delTurma('${t.id}')">Excluir</button></td></tr>`).join('')}</tbody></table>`}
+window.delTurma=x=>{
+  const t=db.turmas.find(v=>v.id===x); if(!t)return;
+  if(!confirmarExclusaoComSenha('a turma',turmaNomeCompleto(t)))return;
+  const alunos=db.alunos.filter(a=>a.turmaId===x).map(a=>a.id);
+  db.turmas=db.turmas.filter(v=>v.id!==x);
+  db.alunos=db.alunos.filter(a=>a.turmaId!==x);
+  db.frequencias=db.frequencias.filter(f=>!alunos.includes(f.alunoId));
+  db.avaliacoes=db.avaliacoes.filter(a=>a.turmaId!==x);
+  db.conteudos=db.conteudos.filter(c=>c.turmaId!==x);
+  if(db.planejamentos)db.planejamentos=db.planejamentos.filter(pl=>pl.turmaId!==x);
+  for(const aid of alunos){delete db.notas[aid];if(db.mediasBimestrais)delete db.mediasBimestrais[aid]}
+  save();alert('Turma excluída com sucesso.');
+}
+function modal(title,html,onSave){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;const d=$('#modal');d.showModal();$('#modalSave').onclick=e=>{e.preventDefault();if(onSave())d.close()}}
+$('#novaTurmaBtn').onclick=()=>{
+  if(!db.escolas.length){toast('Cadastre uma escola primeiro');go('escolas');return}
+  const escolasHtml=db.escolas.map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('');
+  modal('Nova turma',
+    `<label>Escola<select id=mEscolaId>${escolasHtml}</select></label>
+     <label>Série/Ano<input id=mSerie placeholder="8º Ano" required></label>
+     <label>Turma<input id=mTurma placeholder="D" required></label>
+     <label>Disciplina<input id=mDisc placeholder="História" required></label>
+     <label>Turno<select id=mTurno><option>Matutino</option><option>Vespertino</option><option>Noturno</option></select></label>`,
+    ()=>{
+      if(!$('#mEscolaId').value||!$('#mSerie').value||!$('#mTurma').value||!$('#mDisc').value)return false;
+      db.turmas.push({id:id(),escolaId:$('#mEscolaId').value,serie:$('#mSerie').value, turma:$('#mTurma').value,disciplina:$('#mDisc').value,turno:$('#mTurno').value});
+      save();toast('Turma criada');return true
+    }
+  )
+};
+function renderAlunos(){
+  const tid=$('#alunosTurma')?.value;
+  const list=db.alunos.filter(a=>a.turmaId===tid);
+  const listEl=$('#alunosList');
+  if(listEl){
+    listEl.innerHTML=list.length?`<table><thead><tr><th>Nº</th><th>Aluno</th><th>Matrícula</th><th>Frequência</th><th>Média atual</th><th></th></tr></thead><tbody>${list.map(a=>{
+      const f=calcFreqAluno(a.id),m=calcAluno(a.id).media;
+      return `<tr><td>${esc(a.numero||'')}</td><td><b>${esc(limparNomeAluno(a.nome))}</b></td><td>${esc(a.matricula||'')}</td><td>${f===null?'—':f.toFixed(0)+'%'}</td><td>${m===null?'—':m.toFixed(1)}</td><td><button class=link-btn onclick="delAluno('${a.id}')">Excluir</button></td></tr>`
+    }).join('')}</tbody></table>`:'<p class=muted>Nenhum aluno nesta turma.</p>';
+  }
+  const hist=$('#historicoBimestres');
+  if(hist){
+    const rows=list.filter(a=>{
+      const mb=db.mediasBimestrais?.[a.id]||{};
+      return mb['1º Bimestre']!==undefined || mb['2º Bimestre']!==undefined;
+    });
+    hist.innerHTML=rows.length?`<table><thead><tr><th>Aluno</th><th>1º Bimestre</th><th>2º Bimestre</th></tr></thead><tbody>${rows.map(a=>{
+      const mb=db.mediasBimestrais?.[a.id]||{};
+      const m1=mb['1º Bimestre'],m2=mb['2º Bimestre'];
+      return `<tr><td><b>${esc(limparNomeAluno(a.nome))}</b></td><td>${m1===undefined?'—':Number(m1).toFixed(1)}</td><td>${m2===undefined?'—':Number(m2).toFixed(1)}</td></tr>`;
+    }).join('')}</tbody></table>`:'<p class=muted>Nenhuma média anterior importada para esta turma.</p>';
+  }
+}
+$('#alunosTurma').onchange=renderAlunos;$('#novoAlunoBtn').onclick=()=>{const tid=$('#alunosTurma').value;if(!tid)return toast('Crie e selecione uma turma');modal('Novo aluno',`<label>Nome<input id=mNome required></label><label>Matrícula<input id=mMat></label><label>Número da chamada<input id=mNum type=number></label>`,()=>{if(!$('#mNome').value)return false;db.alunos.push({id:id(),turmaId:tid,nome:$('#mNome').value.trim(),matricula:$('#mMat').value.trim(),numero:$('#mNum').value});save();return true})};window.delAluno=x=>{
+  const a=db.alunos.find(v=>v.id===x); if(!a)return;
+  if(!confirmarExclusaoComSenha('o aluno',a.nome))return;
+  db.alunos=db.alunos.filter(v=>v.id!==x);
+  db.frequencias=db.frequencias.filter(f=>f.alunoId!==x);
+  delete db.notas[x];
+  if(db.mediasBimestrais)delete db.mediasBimestrais[x];
+  save();alert('Aluno excluído com sucesso.');
+}
+
+async function extractSigeResumoFinal(file){
+  try{
+    const pdfjsLib=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+    const data=new Uint8Array(await file.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data}).promise;
+    let allRows=[];
+    let metaText='';
+
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      const items=content.items
+        .filter(it=>String(it.str||'').trim())
+        .map(it=>({
+          text:String(it.str).replace(/\s+/g,' ').trim(),
+          x:Number(it.transform[4]),
+          y:Number(it.transform[5]),
+          w:Number(it.width||0)
+        }));
+
+      metaText += '\n' + items.map(i=>i.text).join(' ');
+
+      // Detect each matrícula as the anchor of a student row.
+      const anchors=items
+        .filter(i=>/^\d{8,14}$/.test(i.text) && i.y < 650)
+        .sort((a,b)=>b.y-a.y);
+
+      // Remove duplicate anchors at essentially the same position.
+      const unique=[];
+      for(const a of anchors){
+        if(!unique.some(u=>Math.abs(u.y-a.y)<2 && u.text===a.text)) unique.push(a);
+      }
+
+      for(let idx=0; idx<unique.length; idx++){
+        const a=unique[idx];
+        const yAbove = idx===0 ? a.y+18 : (unique[idx-1].y+a.y)/2;
+        const yBelow = idx===unique.length-1 ? a.y-18 : (a.y+unique[idx+1].y)/2;
+
+        // Items belonging to this visual row band.
+        const band=items.filter(i=>i.y<=yAbove && i.y>=yBelow);
+
+        // Order number is left of matrícula.
+        const orderCandidates=band.filter(i=>/^\d{1,3}$/.test(i.text) && i.x < a.x);
+        const numero=orderCandidates.sort((u,v)=>v.x-u.x)[0]?.text||'';
+
+        // Determine column boundaries from the matrícula anchor.
+        // In this SIGE report, name is immediately to the right of matrícula;
+        // bimonthly grades are farther right. Use page-relative positions so
+        // it remains stable across screen/PDF dimensions.
+        const pageWidth=page.view[2];
+        const nameLeft=a.x + Math.max(a.w,45) + 2;
+        const grade1X=pageWidth*0.385;
+        const grade2X=pageWidth*0.455;
+        const grade3X=pageWidth*0.52;
+
+        /

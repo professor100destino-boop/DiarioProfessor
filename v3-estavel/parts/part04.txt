@@ -1,0 +1,144 @@
+ection>
+
+      <section id="view-atividades" class="view">
+        <div class="section-shell">
+          <div class="section-head"><div><h2>Controle de Atividades</h2><p>Cadastre as atividades e lance as notas separadamente das provas.</p></div></div>
+          <div class="panel">
+            <div class="toolbar wrap"><select id="atividadesTurma"></select><select id="atividadesBimestre"><option>1º Bimestre</option><option>2º Bimestre</option><option selected>3º Bimestre</option><option>4º Bimestre</option></select><button class="primary" id="novaAtividadeBtn">+ Nova atividade</button></div>
+            <div class="formula-box"><strong>Média das Atividades:</strong> soma das notas das atividades ÷ quantidade de atividades cadastradas. Essa média conta como <b>uma única nota</b> na média final.</div>
+            <div id="atividadesTable" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-notas" class="view">
+        <div class="section-shell">
+          <div class="section-head"><div><h2>Provas e Média Final</h2><p>As provas ficam separadas. A média das atividades entra como uma única nota.</p></div></div>
+          <div class="panel">
+            <div class="toolbar wrap"><select id="notasTurma"></select><select id="notasBimestre"><option>1º Bimestre</option><option>2º Bimestre</option><option selected>3º Bimestre</option><option>4º Bimestre</option></select><button class="primary" id="novaProvaBtn">+ Nova prova</button></div>
+            <div class="formula-box"><strong>Média Final:</strong> (Média das Atividades + notas das Provas) ÷ quantidade de notas consideradas.</div>
+            <div id="notasTable" class="table-wrap"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-conteudos" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Aulas e Conteúdos</h2>
+              <p>Registre o que foi trabalhado em cada aula com data, tema, conteúdo e atividade realizada.</p>
+            </div>
+            <div class="toolbar wrap"><select id="conteudoTurma"></select><button class="primary" id="novoConteudoBtn">+ Registrar aula</button></div>
+          </div>
+          <div class="panel"><div id="conteudosList" class="simple-list"></div></div>
+        </div>
+      </section>
+
+      
+      <section id="view-planejamento" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Planejamento</h2>
+              <p>Selecione escola, turma e bimestre; importe um planejamento em DOCX e acesse cada aula diretamente pelo número.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar wrap">
+              <select id="planEscola" aria-label="Escola"></select>
+              <select id="planTurma" aria-label="Turma"></select>
+              <select id="planBimestre" aria-label="Bimestre">
+                <option value="1º Bimestre">1º Bimestre</option>
+                <option value="2º Bimestre">2º Bimestre</option>
+                <option value="3º Bimestre" selected>3º Bimestre</option>
+                <option value="4º Bimestre">4º Bimestre</option>
+              </select>
+              <label class="primary file-label">
+                Importar planejamento DOCX
+                <input type="file" id="planDocxFile" accept=".docx" hidden>
+              </label>
+            </div>
+            <div class="notice">
+              O documento deve usar títulos como <b>AULA 1 – ...</b>, <b>AULA 2 – ...</b> etc.
+              O sistema separa automaticamente Habilidade, Objetivos/Conteúdos, Metodologia e Avaliação.
+            </div>
+
+            <div id="planejamentosList"></div>
+
+            <div id="planAulasArea" class="hidden">
+              <div class="section-head" style="margin-top:18px">
+                <div>
+                  <h3 id="planTituloAtual" style="margin:0">Aulas</h3>
+                  <p id="planMetaAtual" class="muted"></p>
+                </div>
+              </div>
+              <div id="planLessonGrid" class="lesson-grid"></div>
+              <div id="planLessonDetail" class="lesson-detail hidden"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<section id="view-relatorios" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Relatórios</h2>
+              <p>Exporte dados em CSV e use o navegador para imprimir ou salvar em PDF.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="report-grid">
+              <button class="report-card" data-report="alunos">👨‍🎓<strong>Lista de alunos</strong><span>CSV</span></button>
+              <button class="report-card" data-report="frequencia">✅<strong>Frequência</strong><span>CSV</span></button>
+              <button class="report-card" data-report="notas">📝<strong>Notas</strong><span>CSV</span></button>
+              <button class="report-card" onclick="window.print()">🖨️<strong>Imprimir / PDF</strong><span>Página atual</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-config" class="view">
+        <div class="section-shell">
+          <div class="section-head">
+            <div>
+              <h2>Configurações</h2>
+              <p>Defina parâmetros básicos do sistema e dos alertas automáticos.</p>
+            </div>
+          </div>
+          <div class="panel narrow">
+            <label>Nome do professor<input id="profNome" placeholder="Professor(a)" /></label>
+            <label>Escola padrão<input id="escolaNome" placeholder="Nome da escola" /></label>
+            <label>Média mínima<input id="mediaMin" type="number" min="0" max="10" step="0.1" value="6" /></label>
+            <label>Frequência mínima (%)<input id="freqMin" type="number" min="0" max="100" value="75" /></label>
+            <div class="button-row"><button class="primary ghost" id="alterarSenhaBtn" type="button">Alterar senha</button><button class="primary" id="saveConfigBtn">Salvar</button><button class="danger" id="resetBtn">Apagar todos os dados</button></div>
+            <hr>
+            <p class="muted"><b>Online:</b> esta V2 continua pronta para publicação gratuita como PWA. Os dados ainda ficam no navegador do aparelho, e a próxima fase pode incluir sincronização online com login.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="modal">
+    <form method="dialog" id="modalForm">
+      <div class="modal-head">
+        <h3 id="modalTitle">Cadastro</h3>
+        <button value="cancel" class="icon-btn">✕</button>
+      </div>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button value="cancel" class="primary ghost">Cancelar</button>
+        <button value="default" id="modalSave" class="primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const KEY='professorControlV1';
+const emptyState=()=>({config:{profNome:'',escolaNome:'',mediaMin:6,freqMin:75},escolas:[],turmas:[],alunos:[],frequencias:[],avaliacoes:[],notas:{},mediasBimestrais:{},conteudos:[],planejamentos:[]});
+let db=load(); let curr
