@@ -97,7 +97,8 @@ function confirmarExclusaoComSenha(tipo,nome){
   return true;
 }
 
-document.addEventListener('DOMContentLoaded',initSecurity);
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initSecurity,{once:true});
+else initSecurity();
 </script>
 
 
