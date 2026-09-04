@@ -66,6 +66,10 @@ button:disabled{opacity:.7;cursor:wait}
       const texts=await Promise.all(parts.map(async url=>{const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error(url);return response.text()}));
       const app=texts.join('').replace('</body>',extras+'</body>');
       document.open();document.write(app);document.close();
+      const resetPosition=()=>{try{window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}catch(e){}};
+      resetPosition();
+      requestAnimationFrame(resetPosition);
+      setTimeout(resetPosition,120);
     }catch(e){console.error(e);button.disabled=false;status.style.display='none';error.textContent='Não foi possível abrir o aplicativo. Verifique a internet e tente novamente.'}
   }
   form.addEventListener('submit',event=>{
