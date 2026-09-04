@@ -189,8 +189,6 @@ uch;
 
 </head>
 <body>
-<div id="offlineStatus" class="offline-status loading">Preparando uso offline…</div>
-
 <div id="sidebarOverlay" class="sidebar-overlay"></div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
