@@ -2,30 +2,83 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b2a55">
 <title>Professor Control</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{color-scheme:light;--navy:#07172d;--blue:#1f6fd1;--text:#152235;--muted:#64748b;--error:#b42318}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+body{min-height:100vh;min-height:100dvh;background:linear-gradient(135deg,var(--navy),#123b70 52%,var(--blue));color:var(--text)}
+button,input{font:inherit}
+.entry{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:16px}
+.entry-card{width:min(88vw,380px);max-height:calc(100dvh - 32px);overflow:auto;background:#fff;border-radius:22px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.entry-logo{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#1f6feb,#58a0ff);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900;margin-bottom:14px}
+h1{font-size:24px;line-height:1.2;margin:0 0 6px}
+.entry-text{color:var(--muted);font-size:15px;line-height:1.4;margin:0 0 14px}
+label{display:block;font-size:14px;font-weight:800;margin:0 0 6px}
+input{display:block;width:100%;min-height:50px;padding:13px 14px;margin:0 0 10px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:var(--text);font-size:16px;outline:none;appearance:none;-webkit-appearance:none;touch-action:manipulation}
+input:focus{border-color:#2475df;box-shadow:0 0 0 4px rgba(36,117,223,.16)}
+button{display:block;width:100%;min-height:50px;border:0;border-radius:12px;padding:13px 15px;background:linear-gradient(135deg,#0b7d3f,#1d9f58);color:#fff;font-size:16px;font-weight:850;cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.7;cursor:wait}
+.entry-error{min-height:20px;margin-top:10px;color:var(--error);font-size:14px;font-weight:750}
+.entry-status{display:none;margin-top:12px;color:#1d4ed8;font-size:14px;font-weight:750;text-align:center}
+@media(max-height:560px){.entry{place-items:start center;padding:10px}.entry-card{width:min(94vw,360px);max-height:calc(100dvh - 20px);padding:16px}.entry-logo{width:46px;height:46px;border-radius:14px;font-size:18px;margin-bottom:9px}h1{font-size:21px}.entry-text{margin-bottom:10px}}
+</style>
 </head>
-<body style="font-family:system-ui;background:#eef3fb;color:#152235;display:grid;place-items:center;min-height:100vh;margin:0">
-<div id="loading">Abrindo Professor Control…</div>
+<body>
+<main class="entry">
+  <section class="entry-card" aria-labelledby="entryTitle">
+    <div class="entry-logo" aria-hidden="true">PC</div>
+    <h1 id="entryTitle">Professor Control</h1>
+    <p id="entryText" class="entry-text">Digite sua senha para acessar o sistema.</p>
+    <form id="entryForm" autocomplete="on">
+      <label id="passwordLabel" for="entryPassword">Senha</label>
+      <input id="entryPassword" name="password" type="password" autocomplete="current-password" inputmode="text" enterkeyhint="done" required>
+      <div id="confirmationArea" hidden>
+        <label for="entryConfirmation">Repita a senha</label>
+        <input id="entryConfirmation" name="confirmation" type="password" autocomplete="new-password" inputmode="text" enterkeyhint="done">
+      </div>
+      <button id="entryButton" type="submit">Entrar</button>
+    </form>
+    <div id="entryError" class="entry-error" role="alert" aria-live="polite"></div>
+    <div id="entryStatus" class="entry-status" aria-live="polite">Abrindo o aplicativo…</div>
+  </section>
+</main>
 <script>
-(async()=>{
-  try{
-    const parts=['./parts/part00.txt','./parts/part01.txt','./parts/part02.txt','./parts/part03.txt','./parts/part04.txt','./parts/part05.txt','./parts/part06.txt','./parts/part07.txt','./parts/part08.txt','./parts/part09.txt','./parts/part10.txt','./parts/part11.txt'];
-    const texts=await Promise.all(parts.map(u=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(u);return r.text()})));
-    let app=texts.join('');
-    const extras='<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script><script>window.db=db;<\/script><script src="./academic-data-v2.js?v=3"><\/script><script src="./runtime-v23.js?v=2302"><\/script><script src="./attendance-pdf-fix.js?v=3"><\/script><script src="./frequency-school.js?v=1"><\/script><script src="./activities-school.js?v=1"><\/script><script src="./activities-quick-mark.js?v=3"><\/script><script src="./notes-school.js?v=1"><\/script><script src="./notes-active-filter.js?v=1"><\/script><script src="./horarios.js?v=1"><\/script><script src="./home-schedule-call.js?v=2"><\/script><script src="./siap-integracao.js?v=2"><\/script><script src="./session-fix.js?v=1"><\/script><script src="./home-actions.js?v=1"><\/script><script src="./advertencias.js?v=1"><\/script><script src="./advertencias-print.js?v=1"><\/script><script src="./advertencias-edit.js?v=1"><\/script><script src="./advertencias-aluno-report.js?v=1"><\/script><script src="./school-filter-fix.js?v=1"><\/script><script src="./private-school-import.js?v=1"><\/script><script src="./backup-migration.js?v=6"><\/script><script src="./recovery-transfer.js?v=1"><\/script><script src="./planning-execute.js?v=1"><\/script><script src="./academic-admin-v2.js?v=1"><\/script><script src="./academic-students-v2.js?v=2"><\/script><script src="./academic-roster-v2.js?v=1"><\/script><script src="./academic-pdf-roster-v2.js?v=1"><\/script><script src="./academic-reports-v2.js?v=1"><\/script><script src="./academic-dashboard-v2.js?v=1"><\/script><script src="./app-lifecycle.js?v=1"><\/script><script src="./update-app.js?v=3"><\/script>';
-    app=app.replace('</body>',extras+'</body>');
-    document.open();
-    document.write(app);
-    document.close();
-  }catch(e){
-    console.error(e);
-    document.getElementById('loading').innerHTML='<b>Não foi possível abrir o aplicativo.</b><br>Atualize a página com a internet ligada.';
+(()=>{
+  const SECURITY_KEY='professor_control_security_v1';
+  const SESSION_KEY='professor_control_authenticated_session';
+  const parts=['./parts/part00.txt','./parts/part01.txt','./parts/part02.txt','./parts/part03.txt','./parts/part04.txt','./parts/part05.txt','./parts/part06.txt','./parts/part07.txt','./parts/part08.txt','./parts/part09.txt','./parts/part10.txt','./parts/part11.txt'];
+  const extras='<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script><script>window.db=db;<\/script><script src="./academic-data-v2.js?v=3"><\/script><script src="./runtime-v23.js?v=2302"><\/script><script src="./attendance-pdf-fix.js?v=3"><\/script><script src="./frequency-school.js?v=1"><\/script><script src="./activities-school.js?v=1"><\/script><script src="./activities-quick-mark.js?v=3"><\/script><script src="./notes-school.js?v=1"><\/script><script src="./notes-active-filter.js?v=1"><\/script><script src="./horarios.js?v=1"><\/script><script src="./home-schedule-call.js?v=2"><\/script><script src="./siap-integracao.js?v=2"><\/script><script src="./session-fix.js?v=1"><\/script><script src="./home-actions.js?v=1"><\/script><script src="./advertencias.js?v=1"><\/script><script src="./advertencias-print.js?v=1"><\/script><script src="./advertencias-edit.js?v=1"><\/script><script src="./advertencias-aluno-report.js?v=1"><\/script><script src="./school-filter-fix.js?v=1"><\/script><script src="./private-school-import.js?v=1"><\/script><script src="./backup-migration.js?v=6"><\/script><script src="./recovery-transfer.js?v=1"><\/script><script src="./planning-execute.js?v=1"><\/script><script src="./academic-admin-v2.js?v=1"><\/script><script src="./academic-students-v2.js?v=2"><\/script><script src="./academic-roster-v2.js?v=1"><\/script><script src="./academic-pdf-roster-v2.js?v=1"><\/script><script src="./academic-reports-v2.js?v=1"><\/script><script src="./academic-dashboard-v2.js?v=1"><\/script><script src="./app-lifecycle.js?v=1"><\/script><script src="./update-app.js?v=3"><\/script>';
+  const $=id=>document.getElementById(id);
+  const form=$('entryForm'),password=$('entryPassword'),confirmation=$('entryConfirmation'),confirmationArea=$('confirmationArea'),button=$('entryButton'),error=$('entryError'),status=$('entryStatus');
+  function hash(value){let h=0x811c9dc5;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,0x01000193)}return(h>>>0).toString(16)}
+  function security(){try{return JSON.parse(localStorage.getItem(SECURITY_KEY)||'{}')}catch{return{}}}
+  const first=!security().passwordHash;
+  if(first){$('entryTitle').textContent='Criar senha de acesso';$('entryText').textContent='Este é o primeiro acesso. Crie uma senha para proteger seus dados.';$('passwordLabel').textContent='Crie uma senha';password.autocomplete='new-password';confirmationArea.hidden=false;confirmation.required=true;button.textContent='Salvar senha e entrar'}
+  async function loadApp(){
+    button.disabled=true;error.textContent='';status.style.display='block';
+    try{
+      const texts=await Promise.all(parts.map(async url=>{const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error(url);return response.text()}));
+      const app=texts.join('').replace('</body>',extras+'</body>');
+      document.open();document.write(app);document.close();
+    }catch(e){console.error(e);button.disabled=false;status.style.display='none';error.textContent='Não foi possível abrir o aplicativo. Verifique a internet e tente novamente.'}
   }
+  form.addEventListener('submit',event=>{
+    event.preventDefault();error.textContent='';const value=password.value;
+    if(first){
+      if(value.length<4){error.textContent='A senha deve ter pelo menos 4 caracteres.';password.focus();return}
+      if(value!==confirmation.value){error.textContent='As senhas não conferem.';confirmation.focus();return}
+      localStorage.setItem(SECURITY_KEY,JSON.stringify({passwordHash:hash(value)}));
+    }else if(security().passwordHash!==hash(value)){error.textContent='Senha incorreta.';password.select();return}
+    sessionStorage.setItem(SESSION_KEY,'1');loadApp();
+  });
+  if(sessionStorage.getItem(SESSION_KEY)==='1')loadApp();
+  else requestAnimationFrame(()=>password.focus({preventScroll:true}));
 })();
 </script>
 </body>
