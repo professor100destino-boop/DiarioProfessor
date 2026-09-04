@@ -191,18 +191,6 @@ uch;
 <body>
 <div id="offlineStatus" class="offline-status loading">Preparando uso offline…</div>
 
-<div id="authLock" class="auth-lock">
-  <div class="auth-card">
-    <div class="auth-logo">PC</div>
-    <h2 id="authTitle">Professor Control</h2>
-    <p id="authText">Digite sua senha para entrar.</p>
-    <input id="authPass" type="password" inputmode="text" autocomplete="current-password" placeholder="Senha">
-    <input id="authPass2" class="hidden" type="password" inputmode="text" autocomplete="new-password" placeholder="Repita a senha">
-    <button id="authBtn">Entrar</button>
-    <div id="authError" class="auth-error"></div>
-  </div>
-</div>
-
 <div id="sidebarOverlay" class="sidebar-overlay"></div>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
